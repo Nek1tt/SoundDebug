@@ -1,0 +1,46 @@
+.main-layout[b-mucz2txwix] {
+    padding: 20px 26px;
+    background-color: white;
+    border-radius: 20px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+
+    width: 100%;
+}
+
+.first-block[b-mucz2txwix] {
+    width: 100%;
+    object-fit: cover;
+}
+
+.find-button[b-mucz2txwix] {
+    color: blue;
+}
+
+.find-button:hover[b-mucz2txwix] {
+    background-color: lightblue;
+}
+
+.string[b-mucz2txwix] {
+    display: flex;
+    gap: 8px;
+}
+
+.stroke[b-mucz2txwix] {
+    margin-top: 20px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 16px;
+
+    display: flex;
+    justify-content: center;
+}
+
+.hidden-input[b-mucz2txwix] {
+    display: none;
+}

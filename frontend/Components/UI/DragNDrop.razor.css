@@ -1,0 +1,46 @@
+.main-layout {
+    padding: 20px 26px;
+    background-color: white;
+    border-radius: 20px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+
+    width: 100%;
+}
+
+.first-block {
+    width: 100%;
+    object-fit: cover;
+}
+
+.find-button {
+    color: blue;
+}
+
+.find-button:hover {
+    background-color: lightblue;
+}
+
+.string {
+    display: flex;
+    gap: 8px;
+}
+
+.stroke {
+    margin-top: 20px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 16px;
+
+    display: flex;
+    justify-content: center;
+}
+
+.hidden-input {
+    display: none;
+}

@@ -1,0 +1,41 @@
+{
+  "Files": [
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\blazor_test.bundle.scp.css",
+      "PackagePath": "staticwebassets\\blazor_test.bundle.scp.css"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\wwwroot\\app.css",
+      "PackagePath": "staticwebassets\\app.css"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\wwwroot\\bootstrap\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\bootstrap\\bootstrap.min.css"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\wwwroot\\bootstrap\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\bootstrap\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\wwwroot\\favicon.png",
+      "PackagePath": "staticwebassets\\favicon.png"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.blazor_test.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.blazor_test.props",
+      "PackagePath": "build\\blazor_test.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.blazor_test.props",
+      "PackagePath": "buildMultiTargeting\\blazor_test.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.blazor_test.props",
+      "PackagePath": "buildTransitive\\blazor_test.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
