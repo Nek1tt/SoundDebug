@@ -1,0 +1,71 @@
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    width: 95%;
+    margin: 0 auto;
+}
+
+.logo {
+    color: white;
+    cursor: pointer;
+    margin-top: 0.5%;
+    text-decoration: none;
+    font-size: 40px;
+    /* background: red; */
+}
+
+.right-button {
+    color: white;
+    font-size: 20px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.right-button:hover {
+    filter: blur(2px);
+}
+
+.right-block {
+    display: flex;
+    align-items: center; 
+    gap: 25px;
+    margin-top: 1.5%;
+    /* background: red; */
+}
+
+.central-block {
+    display: flex;
+    align-items: center; 
+    gap: 25px;
+    margin-top: 1.5%;
+}
+
+.central-button {
+    color: white;
+    font-size: 20px;
+    padding-right: 20px;
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    margin: 0;
+    text-decoration: none;
+}
+
+.central-button::after {
+  content: ""; 
+  display: inline-block;
+  margin-left: 10px;
+  width: 8px; 
+  height: 8px;
+  border-right: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(45deg);
+  vertical-align: middle;
+  transition: transform 0.3s ease;
+}
+
+.central-button:hover {
+    filter: blur(2px);
+}

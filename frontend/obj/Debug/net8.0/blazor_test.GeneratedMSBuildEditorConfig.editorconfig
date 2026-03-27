@@ -46,6 +46,10 @@ build_metadata.AdditionalFiles.CssScope = b-lfgvpvrkw8
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = b-bhwwqaz8tz
 
+[D:/Studying/6/SoundDebug/frontend/Components/Pages/Input.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xJbnB1dC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-c2g8jqg0ey
+
 [D:/Studying/6/SoundDebug/frontend/Components/Pages/Loading.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2FkaW5nLnJhem9y
 build_metadata.AdditionalFiles.CssScope = b-5dbwrwziak
@@ -57,3 +61,7 @@ build_metadata.AdditionalFiles.CssScope = b-mucz2txwix
 [D:/Studying/6/SoundDebug/frontend/Components/UI/GenreSelect.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xVSVxHZW5yZVNlbGVjdC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-lmhqr5l2p8
+
+[D:/Studying/6/SoundDebug/frontend/Components/UI/Navbar.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xVSVxOYXZiYXIucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-a92vb5hbnx

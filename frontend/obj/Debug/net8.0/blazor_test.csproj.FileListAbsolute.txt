@@ -73,3 +73,5 @@ D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\refint\blazor_test.dll
 D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\blazor_test.pdb
 D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\blazor_test.genruntimeconfig.cache
 D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\ref\blazor_test.dll
+D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\scopedcss\Components\UI\Navbar.razor.rz.scp.css
+D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\scopedcss\Components\Pages\Input.razor.rz.scp.css

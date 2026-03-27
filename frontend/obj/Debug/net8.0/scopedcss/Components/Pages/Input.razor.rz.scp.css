@@ -1,0 +1,36 @@
+.main-layout[b-c2g8jqg0ey] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: black;
+    width: 100%;
+}
+
+
+.upload-button[b-c2g8jqg0ey] {
+    padding: 10px 16px;
+    background-color: #7D54D0;
+    color: white;
+
+    border: none;
+    border-radius: 20px;
+
+    width: 20%;
+
+    display: flex;
+    justify-content: center;
+
+    margin-top: 20px;
+
+    transition: all 0.3s ease;
+
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.upload-button:hover[b-c2g8jqg0ey] {
+    width: 21%;
+
+    border-radius: 25px;
+    padding: 12px 18px;
+    background-color: #4f279f;
+}

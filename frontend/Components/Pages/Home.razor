@@ -1,63 +1,37 @@
 ﻿@page "/"
 @using blazor_test.Components.Layout
 @using blazor_test.Components.UI
-@inject IJSRuntime JS
 
 <PageTitle>SoundDebug</PageTitle>
 
-<div class="main-layout">
-    <DragNDrop H1Text="1 Загрузите вашу запись" FilesSelected="HandleTrack"></DragNDrop>
-    <GenreSelect GenreSelectedChanged="HandleGenre"></GenreSelect>
-    <DragNDrop H1Text="3 Загрузите ваши референсы" Type="multiple" FilesSelected="HandleReferences"></DragNDrop>
-    <button @onclick="CreateJson" class="upload-button">
-        Отправить
-    </button>
+<div class="first-block">
+    <div class="bg">
+        <div class="blob"></div>
+        <div class="blob"></div>
+    </div>
+    <Navbar/>
+    <div class="quote">
+        <div class="first-words">
+            <h1 class="first-words-1">Слышишь?</h1>
+            <h1 class="first-words-2">А теперь - пойми</h1>
+        </div>
+        <h1 class="second-words">Анализируй треки с помощью AI и получай точный разбор: частоты, фаза, динамика и конфликты</h1>
+        <h1 class="second-words">Не автокоррекция, a понимание</h1>
+        <h1 class="third-words">Прокачивай слух и микс осознанно</h1>
+    </div>
+    <div class="marquee">
+        <div class="marquee-content">
+            <span>Разделение на стемы</span>
+            <span>Глубокий математический анализ</span>
+            <span>Выявление технических ошибок микса</span>
+            <span>Пошаговые рекомендации</span>
+            <span>Персонализированная диагностическая карта</span>
+
+            <span>Разделение на стемы</span>
+            <span>Глубокий математический анализ</span>
+            <span>Выявление технических ошибок микса</span>
+            <span>Пошаговые рекомендации</span>
+            <span>Персонализированная диагностическая карта</span>
+        </div>
+    </div>
 </div>
-
-@code {
-    private List<IBrowserFile> trackFiles = new();
-    private List<IBrowserFile> referenceFiles = new();
-    private string genre = string.Empty;
-
-    private async Task HandleTrack(IBrowserFile[] files)
-    {
-        trackFiles = files.ToList();
-        await JS.InvokeVoidAsync("console.log", "Выбранные записи:", files.Select(f => f.Name).ToArray());
-    }
-
-    private async Task HandleReferences(IBrowserFile[] files)
-    {
-        referenceFiles = files.ToList();
-        await JS.InvokeVoidAsync("console.log", "Выбранные записи:", files.Select(f => f.Name).ToArray());
-    }
-
-    private async Task HandleGenre(string selectedGenre)
-    {
-        genre = selectedGenre;
-        await JS.InvokeVoidAsync("console.log", "Выбранный жанр:", genre);
-    }
-
-    public class UploadRequest
-    {
-        public string Genre { get; set; } = string.Empty;
-        public List<string> Tracks { get; set; } = new();
-        public List<string> References { get; set; } = new();
-    }
-
-    private async Task CreateJson()
-    {
-        var request = new UploadRequest
-        {
-            Genre = genre,
-            Tracks = trackFiles.Select(f => f.Name).ToList(),
-            References = referenceFiles.Select(f => f.Name).ToList()
-        };
-
-        var json = System.Text.Json.JsonSerializer.Serialize(request, new System.Text.Json.JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
-
-        await JS.InvokeVoidAsync("console.log", json);
-    }
-}
