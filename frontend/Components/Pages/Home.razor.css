@@ -10,7 +10,6 @@
   filter: contrast(120%) brightness(105%);
   overflow: hidden;
   width: 100%;
-  height: 150vh;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
