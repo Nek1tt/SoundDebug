@@ -1,6 +1,7 @@
 @page "/login"
 @using blazor_test.Components.Layout
 @using blazor_test.Components.UI
+@inject NavigationManager Navigation
 
 <PageTitle>SoundDebug</PageTitle>
 
@@ -19,7 +20,14 @@
             <label for="password">Пароль</label>
             <input id="password" placeholder="мойпароль"/>
         </div>
-        <button class="sign-button">Войти</button>
+        <button @onclick="LogIn" class="sign-button">Войти</button>
 
     </div>
 </div>
+
+@code {
+    private async Task LogIn()
+    {
+        Navigation.NavigateTo("/profile");
+    }
+}

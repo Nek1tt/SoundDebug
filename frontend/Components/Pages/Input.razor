@@ -2,6 +2,7 @@
 @using blazor_test.Components.Layout
 @using blazor_test.Components.UI
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>SoundDebug</PageTitle>
 
@@ -64,6 +65,8 @@
         {
             WriteIndented = true
         });
+
+        Navigation.NavigateTo("/loading");
 
         await JS.InvokeVoidAsync("console.log", json);
     }

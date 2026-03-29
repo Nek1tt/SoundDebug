@@ -1,0 +1,39 @@
+*[b-7pslyg1to9] {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.main-layout[b-7pslyg1to9]{
+  background: #0b1c24;
+  filter: contrast(120%) brightness(105%);
+  overflow: hidden;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+}
+
+.main-layout h1[b-7pslyg1to9] {
+    color: white;
+    margin: 20px;
+}
+
+.graphics-container[b-7pslyg1to9] {
+    margin: 20px auto;
+
+    display: flex;
+    flex-direction: row;
+
+    width: 95%;
+
+    gap: 20px;
+}
+
+.graphics-container div[b-7pslyg1to9] {
+    background-color: white;
+    width: 50%;
+    height: 500px;
+}

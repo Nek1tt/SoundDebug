@@ -1,29 +1,22 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  position: relative;
+}
+
 .main-layout {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.loader {
-  width: 700px;
+  background: #0b1c24;
+  filter: contrast(120%) brightness(105%);
   overflow: hidden;
-}
-
-.loader img {
   width: 100%;
-  display: block;
-  clip-path: inset(0 100% 0 0);
-  animation: slideFade 3s linear infinite;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-@keyframes slideFade {
-  0% {
-    clip-path: inset(0 100% 0 0);
-  }
-  50% {
-    clip-path: inset(0 0 0 0);
-  }
-  100% {
-    clip-path: inset(0 100% 0 0);
-  }
+.status {
+  color: white;
+  letter-spacing: 3px;
+  margin: auto auto;
 }

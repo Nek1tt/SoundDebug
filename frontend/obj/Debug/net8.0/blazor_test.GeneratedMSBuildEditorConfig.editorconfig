@@ -50,6 +50,10 @@ build_metadata.AdditionalFiles.CssScope = b-bhwwqaz8tz
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xJbnB1dC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-c2g8jqg0ey
 
+[D:/Studying/6/SoundDebug/frontend/Components/Pages/JobPage.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xKb2JQYWdlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-7pslyg1to9
+
 [D:/Studying/6/SoundDebug/frontend/Components/Pages/Loading.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2FkaW5nLnJhem9y
 build_metadata.AdditionalFiles.CssScope = b-5dbwrwziak
@@ -58,6 +62,10 @@ build_metadata.AdditionalFiles.CssScope = b-5dbwrwziak
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpbi5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-bb3mz5lh6n
 
+[D:/Studying/6/SoundDebug/frontend/Components/Pages/Profile.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9maWxlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-6t8ckgml96
+
 [D:/Studying/6/SoundDebug/frontend/Components/UI/DragNDrop.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xVSVxEcmFnTkRyb3AucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-mucz2txwix
@@ -65,6 +73,10 @@ build_metadata.AdditionalFiles.CssScope = b-mucz2txwix
 [D:/Studying/6/SoundDebug/frontend/Components/UI/GenreSelect.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xVSVxHZW5yZVNlbGVjdC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-lmhqr5l2p8
+
+[D:/Studying/6/SoundDebug/frontend/Components/UI/Job.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xVSVxKb2IucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-rhhr4jdf3k
 
 [D:/Studying/6/SoundDebug/frontend/Components/UI/Navbar.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xVSVxOYXZiYXIucmF6b3I=

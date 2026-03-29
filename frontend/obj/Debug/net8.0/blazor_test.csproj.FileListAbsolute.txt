@@ -76,3 +76,6 @@ D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\ref\blazor_test.dll
 D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\scopedcss\Components\UI\Navbar.razor.rz.scp.css
 D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\scopedcss\Components\Pages\Input.razor.rz.scp.css
 D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\scopedcss\Components\Pages\Login.razor.rz.scp.css
+D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\scopedcss\Components\Pages\Profile.razor.rz.scp.css
+D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\scopedcss\Components\UI\Job.razor.rz.scp.css
+D:\Studying\6\SoundDebug\frontend\obj\Debug\net8.0\scopedcss\Components\Pages\JobPage.razor.rz.scp.css
