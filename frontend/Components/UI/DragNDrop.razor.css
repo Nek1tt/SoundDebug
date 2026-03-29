@@ -1,6 +1,5 @@
 .main-layout {
     padding: 20px 26px;
-    background-color: white;
     border-radius: 20px;
 
     display: flex;
@@ -8,9 +7,11 @@
     align-items: center;
     gap: 20px;
 
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    width: 90%;
+}
 
-    width: 100%;
+.header {
+    color: white;
 }
 
 .first-block {
@@ -23,7 +24,7 @@
 }
 
 .find-button:hover {
-    background-color: lightblue;
+    filter: blur(2px);
 }
 
 .string {
@@ -33,7 +34,7 @@
 
 .stroke {
     margin-top: 20px;
-    border: 2px dashed #ccc;
+    border: 2px dashed gray;
     border-radius: 8px;
     padding: 16px;
 

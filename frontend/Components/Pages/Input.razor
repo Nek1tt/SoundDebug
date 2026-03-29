@@ -6,13 +6,19 @@
 <PageTitle>SoundDebug</PageTitle>
 
 <div class="main-layout">
-    <Navbar></Navbar>
-    <DragNDrop H1Text="1 Загрузите вашу запись" FilesSelected="HandleTrack"></DragNDrop>
-    <GenreSelect GenreSelectedChanged="HandleGenre"></GenreSelect>
-    <DragNDrop H1Text="3 Загрузите ваши референсы" Type="multiple" FilesSelected="HandleReferences"></DragNDrop>
-    <button @onclick="CreateJson" class="upload-button">
-        Отправить
-    </button>
+    <Navbar/>
+    <div class="bg">
+        <div class="blob"></div>
+        <div class="blob"></div>
+    </div>
+    <div class="input-form">
+        <DragNDrop H1Text="1 Загрузите вашу запись" FilesSelected="HandleTrack"></DragNDrop>
+        <GenreSelect GenreSelectedChanged="HandleGenre"></GenreSelect>
+        <DragNDrop H1Text="3 Загрузите ваши референсы" Type="multiple" FilesSelected="HandleReferences"></DragNDrop>
+        <button @onclick="CreateJson" class="upload-button">
+            Отправить
+        </button>
+    </div>
 </div>
 
 @code {

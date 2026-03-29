@@ -1,6 +1,5 @@
 .main-layout[b-mucz2txwix] {
     padding: 20px 26px;
-    background-color: white;
     border-radius: 20px;
 
     display: flex;
@@ -8,9 +7,11 @@
     align-items: center;
     gap: 20px;
 
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    width: 90%;
+}
 
-    width: 100%;
+.header[b-mucz2txwix] {
+    color: white;
 }
 
 .first-block[b-mucz2txwix] {
@@ -23,7 +24,7 @@
 }
 
 .find-button:hover[b-mucz2txwix] {
-    background-color: lightblue;
+    filter: blur(2px);
 }
 
 .string[b-mucz2txwix] {
@@ -33,7 +34,7 @@
 
 .stroke[b-mucz2txwix] {
     margin-top: 20px;
-    border: 2px dashed #ccc;
+    border: 2px dashed gray;
     border-radius: 8px;
     padding: 16px;
 

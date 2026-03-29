@@ -2,11 +2,16 @@
     margin-top: 20px;
     margin-bottom: 20px;
 
-    background-color: white;
     border-radius: 20px;
     padding: 20px 26px;
 
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    width: 90%;
+}
 
-    width: 100%;
+[b-lmhqr5l2p8] .form-select {
+    padding: 10px;
+
+    color: gray;
+    background-color: transparent;
+    border: 1px solid gray;
 }

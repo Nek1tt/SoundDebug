@@ -251,37 +251,65 @@ main[b-26z2yjmvy9] {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background-color: black;
+    background: #0b1c24;
     width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+    filter: contrast(120%) brightness(105%);
 }
 
+.bg[b-c2g8jqg0ey] {
+  pointer-events: none;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
 
-.upload-button[b-c2g8jqg0ey] {
-    padding: 10px 16px;
-    background-color: #7D54D0;
-    color: white;
+.blob[b-c2g8jqg0ey] {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #6bbcff, transparent 60%);
+  filter: blur(120px);
+  opacity: 0.7;
+}
 
-    border: none;
-    border-radius: 20px;
+.blob:nth-child(1)[b-c2g8jqg0ey] {
+  top: 7%;
+  left: 17%;
+}
 
-    width: 20%;
+.blob:nth-child(2)[b-c2g8jqg0ey] {
+  top: 30%;
+  left: 60%;
+  background: radial-gradient(circle, #3a7ca5, transparent 60%);
+}
+
+.input-form[b-c2g8jqg0ey] {
+    width: 100%;
 
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
 
-    margin-top: 20px;
+    margin: 3%;
+}
 
-    transition: all 0.3s ease;
-
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+.upload-button[b-c2g8jqg0ey] {
+    margin: 3%;
+    padding: 10px 16px;
+    background-color: transparent;
+    color: white;
+    font-size: 30px;
+    border: none;
 }
 
 .upload-button:hover[b-c2g8jqg0ey] {
-    width: 21%;
-
-    border-radius: 25px;
-    padding: 12px 18px;
-    background-color: #4f279f;
+    filter: blur(2px);
 }
 /* _content/blazor_test/Components/Pages/Loading.razor.rz.scp.css */
 .main-layout[b-5dbwrwziak] {
@@ -440,7 +468,6 @@ main[b-26z2yjmvy9] {
 /* _content/blazor_test/Components/UI/DragNDrop.razor.rz.scp.css */
 .main-layout[b-mucz2txwix] {
     padding: 20px 26px;
-    background-color: white;
     border-radius: 20px;
 
     display: flex;
@@ -448,9 +475,11 @@ main[b-26z2yjmvy9] {
     align-items: center;
     gap: 20px;
 
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    width: 90%;
+}
 
-    width: 100%;
+.header[b-mucz2txwix] {
+    color: white;
 }
 
 .first-block[b-mucz2txwix] {
@@ -463,7 +492,7 @@ main[b-26z2yjmvy9] {
 }
 
 .find-button:hover[b-mucz2txwix] {
-    background-color: lightblue;
+    filter: blur(2px);
 }
 
 .string[b-mucz2txwix] {
@@ -473,7 +502,7 @@ main[b-26z2yjmvy9] {
 
 .stroke[b-mucz2txwix] {
     margin-top: 20px;
-    border: 2px dashed #ccc;
+    border: 2px dashed gray;
     border-radius: 8px;
     padding: 16px;
 
@@ -489,13 +518,18 @@ main[b-26z2yjmvy9] {
     margin-top: 20px;
     margin-bottom: 20px;
 
-    background-color: white;
     border-radius: 20px;
     padding: 20px 26px;
 
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    width: 90%;
+}
 
-    width: 100%;
+[b-lmhqr5l2p8] .form-select {
+    padding: 10px;
+
+    color: gray;
+    background-color: transparent;
+    border: 1px solid gray;
 }
 /* _content/blazor_test/Components/UI/Navbar.razor.rz.scp.css */
 .navbar[b-a92vb5hbnx] {
@@ -552,6 +586,7 @@ main[b-26z2yjmvy9] {
     cursor: pointer;
     margin: 0;
     text-decoration: none;
+    outline: none;
 }
 
 .central-button[b-a92vb5hbnx]::after {
