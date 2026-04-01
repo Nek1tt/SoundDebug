@@ -358,6 +358,46 @@ main[b-ssf960r876] {
 .upload-button:hover[b-c647ny9fxy] {
     filter: blur(2px);
 }
+/* /Pages/JobPage.razor.rz.scp.css */
+*[b-ssewzxxef6] {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.main-layout[b-ssewzxxef6]{
+  background: #0b1c24;
+  filter: contrast(120%) brightness(105%);
+  overflow: hidden;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+}
+
+.main-layout h1[b-ssewzxxef6] {
+    color: white;
+    margin: 20px;
+}
+
+.graphics-container[b-ssewzxxef6] {
+    margin: 20px auto;
+
+    display: flex;
+    flex-direction: row;
+
+    width: 95%;
+
+    gap: 20px;
+}
+
+.graphics-container div[b-ssewzxxef6] {
+    background-color: white;
+    width: 50%;
+    height: 500px;
+}
 /* /Pages/Login.razor.rz.scp.css */
 *[b-6gfke9n9g9] {
   margin: 0;

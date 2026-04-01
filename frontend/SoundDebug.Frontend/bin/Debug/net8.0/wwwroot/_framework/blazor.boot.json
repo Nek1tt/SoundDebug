@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "SoundDebug.Frontend",
   "resources": {
-    "hash": "sha256-hyZsiQJ5ZNtvB6P13xzwwSbE663NiULY9vEWdWX9yjA=",
+    "hash": "sha256-LSsk6rdZCXqtrksi2F36uNPlaT2GtbjtohNyIIYS3PY=",
     "jsModuleNative": {
       "dotnet.native.8.0.25.0n5k0gh46q.js": "sha256-A16ka545FHaB+QXjyJ4exXh7XpBAAIFnX8YkC4xAng8="
     },
@@ -208,10 +208,10 @@
       "mscorlib.wasm": "sha256-ovgR6YJeXMcsAhvGJVdyjhD5pU34EEAc0BGQYTUAyNk=",
       "netstandard.wasm": "sha256-90+pPOP/3NxK0buBFJlcvDw0r6Nk/i3+oM9dt2x+LPM=",
       "System.Private.CoreLib.wasm": "sha256-IXKG8p3ppN4zPjJOxht5wSXCcbFNPH6InVm7fsThBPI=",
-      "SoundDebug.Frontend.wasm": "sha256-sFbv8ZWOrtQVYRLyyl3kiW7L6Vqobh93ytjwq/XMYns="
+      "SoundDebug.Frontend.wasm": "sha256-EqSzMzuIcxFsFddriaWoMDoepVAV++BnqyFQZqqARpA="
     },
     "pdb": {
-      "SoundDebug.Frontend.pdb": "sha256-wCL8Mxn0lnBYYgzubH9lreSqle58d/ddJ/yUa+A/ZCY="
+      "SoundDebug.Frontend.pdb": "sha256-0VbNsfF08h5nK7Jj7cdKSJwqyi/I0eeokcQlLEJbuIY="
     }
   },
   "cacheBootResources": true,
