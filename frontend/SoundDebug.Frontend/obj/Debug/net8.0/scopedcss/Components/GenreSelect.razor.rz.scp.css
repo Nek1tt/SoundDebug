@@ -1,0 +1,17 @@
+.main-layout[b-sjkqqhl33w] {
+    margin-top: 20px;
+    margin-bottom: 20px;
+
+    border-radius: 20px;
+    padding: 20px 26px;
+
+    width: 90%;
+}
+
+[b-sjkqqhl33w] .form-select {
+    padding: 10px;
+
+    color: gray;
+    background-color: transparent;
+    border: 1px solid gray;
+}

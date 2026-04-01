@@ -1,0 +1,47 @@
+.main-layout {
+    padding: 20px 26px;
+    border-radius: 20px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+
+    width: 90%;
+}
+
+.header {
+    color: white;
+}
+
+.first-block {
+    width: 100%;
+    object-fit: cover;
+}
+
+.find-button {
+    color: blue;
+}
+
+.find-button:hover {
+    filter: blur(2px);
+}
+
+.string {
+    display: flex;
+    gap: 8px;
+}
+
+.stroke {
+    margin-top: 20px;
+    border: 2px dashed gray;
+    border-radius: 8px;
+    padding: 16px;
+
+    display: flex;
+    justify-content: center;
+}
+
+.hidden-input {
+    display: none;
+}
