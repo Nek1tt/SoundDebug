@@ -1,0 +1,108 @@
+@page "/login"
+
+@using SoundDebug.Frontend
+@inject NavigationManager Navigation
+
+<PageTitle>SoundDebug</PageTitle>
+
+<div class="main-layout">
+    <div class="bg">
+        <div class="blob"></div>
+        <div class="blob"></div>
+    </div>
+    <div class="form">
+        <div class="greeting">
+            <a href="/" class="logo">SoundDebug</a>
+        </div>
+        <div class="form-input">
+            <label for="email">Почта</label>
+            <input id="email" placeholder="моеимя@мояпочта.ру" @bind="email"/>
+            <label for="password">Пароль</label>
+            <input id="password" placeholder="мойпароль" @bind="password"/>
+        </div>
+
+        <button @onclick="HandleSubmit" class="sign-button">
+            @(isRegisterMode ? "Зарегистрироваться" : "Войти")
+        </button>
+
+        <div style="margin-top:10px;">
+            <button class="change-button" @onclick="ToggleMode">
+                @(isRegisterMode 
+                    ? "Уже есть аккаунт? Войти" 
+                    : "Нет аккаунта? Зарегистрироваться")
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <p style="color:red">@error</p>
+        }
+    </div>
+</div>
+
+@code {
+    private string email = ""; 
+    private string password = "";
+    private string error = "";
+    private bool isRegisterMode = false;
+    private bool isLoading = false;
+
+    private async Task HandleSubmit()
+    {
+        Navigation.NavigateTo("/profile");
+        @* if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            error = "Заполните все поля";
+            return;
+        }
+
+        isLoading = true;
+
+        try {
+            if (isRegisterMode)
+            {
+                // Регистрация
+                var user = new ApplicationUser { UserName = email, Email = email };
+                var result = await UserManager.CreateAsync(user, password);
+
+                if (result.Succeeded)
+                {
+                    await SignInManager.SignInAsync(user, isPersistent: false);
+                    Navigation.NavigateTo("/profile", true);
+                }
+                else
+                {
+                    error = result.Errors.FirstOrDefault()?.Description ?? "Ошибка регистрации";
+                }
+            }
+            else
+            {
+                // Вход
+                var result = await SignInManager.PasswordSignInAsync(
+                    email, 
+                    password, 
+                    isPersistent: false, 
+                    lockoutOnFailure: false);
+
+                if (result.Succeeded)
+                {
+                    Navigation.NavigateTo("/profile", true);
+                }
+                else
+                {
+                    error = "Неверная почта или пароль";
+                }
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        } *@
+    }
+
+    void ToggleMode()
+    {
+        isRegisterMode = !isRegisterMode;
+        error = "";
+    }
+}
