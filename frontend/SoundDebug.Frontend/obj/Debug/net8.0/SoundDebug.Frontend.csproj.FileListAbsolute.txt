@@ -1035,3 +1035,5 @@ D:\Studying\6\SoundDebug\frontend\SoundDebug.Frontend\obj\Debug\net8.0\scopedcss
 D:\Studying\6\SoundDebug\frontend\SoundDebug.Frontend\obj\Debug\net8.0\scopedcss\Pages\Input.razor.rz.scp.css
 D:\Studying\6\SoundDebug\frontend\SoundDebug.Frontend\obj\Debug\net8.0\scopedcss\Components\DragNDrop.razor.rz.scp.css
 D:\Studying\6\SoundDebug\frontend\SoundDebug.Frontend\obj\Debug\net8.0\scopedcss\Components\GenreSelect.razor.rz.scp.css
+D:\Studying\6\SoundDebug\frontend\SoundDebug.Frontend\obj\Debug\net8.0\scopedcss\Components\Job.razor.rz.scp.css
+D:\Studying\6\SoundDebug\frontend\SoundDebug.Frontend\obj\Debug\net8.0\scopedcss\Pages\Profile.razor.rz.scp.css

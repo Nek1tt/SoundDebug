@@ -1,0 +1,37 @@
+*[b-dxiyvog1q8] {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.main-layout[b-dxiyvog1q8]{
+  background: #0b1c24;
+  filter: contrast(120%) brightness(105%);
+  overflow: hidden;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.horizontal-line[b-dxiyvog1q8] {
+    height: 1px;
+    background-color: gray;
+    width: 100%;
+    margin: 10px 0px;
+}
+
+.jobs-list[b-dxiyvog1q8] {
+    width: 55%;
+    padding: 1%;
+
+    margin: auto auto;
+
+    border: 1px solid gray;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

@@ -1,0 +1,31 @@
+.main-layout[b-7boko47871] {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+
+    width: 100%;
+    gap: 40px;
+}
+
+.main-layout a[b-7boko47871], h1[b-7boko47871] {
+    color: white;
+    font-size: 30px;
+
+    padding: 0px 10px;
+    margin: 0;
+
+    text-decoration: none;
+    outline: none;
+
+    cursor: pointer;
+}
+
+.main-layout label[b-7boko47871] {
+    color: white;
+    font-size: 20px;
+}
+
+.job-number[b-7boko47871] {
+    display: flex;
+    flex-direction: column;
+}
