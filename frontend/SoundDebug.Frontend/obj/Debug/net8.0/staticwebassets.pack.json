@@ -1,0 +1,61 @@
+{
+  "Files": [
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\bin\\Debug\\net8.0\\wwwroot\\_framework\\blazor.webassembly.js",
+      "PackagePath": "staticwebassets\\_framework\\blazor.webassembly.js"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\obj\\Debug\\net8.0\\compressed\\hqk1t9up2v.gz",
+      "PackagePath": "staticwebassets\\_framework\\blazor.webassembly.js.gz"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\obj\\Debug\\net8.0\\scopedcss\\bundle\\SoundDebug.Frontend.styles.css",
+      "PackagePath": "staticwebassets\\SoundDebug.Frontend.styles.css"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\css\\app.css",
+      "PackagePath": "staticwebassets\\css\\app.css"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\css\\bootstrap\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\favicon.png",
+      "PackagePath": "staticwebassets\\favicon.png"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\icon-192.png",
+      "PackagePath": "staticwebassets\\icon-192.png"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\sample-data\\weather.json",
+      "PackagePath": "staticwebassets\\sample-data\\weather.json"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.SoundDebug.Frontend.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.SoundDebug.Frontend.props",
+      "PackagePath": "build\\SoundDebug.Frontend.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.SoundDebug.Frontend.props",
+      "PackagePath": "buildMultiTargeting\\SoundDebug.Frontend.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.SoundDebug.Frontend.props",
+      "PackagePath": "buildTransitive\\SoundDebug.Frontend.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

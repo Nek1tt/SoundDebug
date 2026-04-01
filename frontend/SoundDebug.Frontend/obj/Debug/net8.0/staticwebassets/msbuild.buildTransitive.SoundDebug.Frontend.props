@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\buildMultiTargeting\SoundDebug.Frontend.props" />
+</Project>
