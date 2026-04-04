@@ -1,6 +1,5 @@
 """
-services/auth_service/main.py
-Сервис аутентификации. Порт 8001.
+auth-service/main.py — Сервис аутентификации. Порт 8001.
 
 Эндпоинты:
   POST /auth/register  — создать пользователя
@@ -18,9 +17,6 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
-
 from shared.config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_MINUTES
 from shared.db.session import get_db
 from shared.db.models import User
@@ -36,11 +32,9 @@ app.add_middleware(
 )
 
 
-# ── Pydantic схемы ────────────────────────────────────────────
-
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str   # plaintext — хешируем внутри
+    password: str
 
 
 class LoginRequest(BaseModel):
@@ -57,8 +51,6 @@ class UserResponse(BaseModel):
     id: int
     email: str
 
-
-# ── Хелперы ───────────────────────────────────────────────────
 
 def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
@@ -77,8 +69,6 @@ def create_token(user_id: int, email: str) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
-# ── Эндпоинты ─────────────────────────────────────────────────
-
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "auth"}
@@ -86,11 +76,9 @@ async def health():
 
 @app.post("/auth/register", response_model=UserResponse, status_code=201)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    # Проверяем уникальность email
     existing = await db.scalar(select(User).where(User.email == body.email))
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
-
     user = User(email=body.email, password=hash_password(body.password))
     db.add(user)
     await db.commit()
@@ -102,23 +90,17 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
 async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = await db.scalar(select(User).where(User.email == body.email))
     if not user or not verify_password(body.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
-    token = create_token(user.id, user.email)
-    return TokenResponse(access_token=token)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    return TokenResponse(access_token=create_token(user.id, user.email))
 
 
 @app.get("/auth/me", response_model=UserResponse)
 async def me(token: str, db: AsyncSession = Depends(get_db)):
-    """Верифицирует токен и возвращает данные пользователя."""
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user_id = int(payload["sub"])
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

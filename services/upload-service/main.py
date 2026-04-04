@@ -1,6 +1,5 @@
 """
-services/upload_service/main.py
-Сервис загрузки аудио и создания джобов. Порт 8002.
+upload-service/main.py — Сервис загрузки аудио и создания джобов. Порт 8002.
 
 Эндпоинты:
   POST /jobs             — создать джоб (загрузить аудио, выбрать жанр)
@@ -10,6 +9,7 @@ services/upload_service/main.py
   GET  /health
 """
 import uuid
+import pathlib
 from typing import Optional
 
 import jwt
@@ -18,9 +18,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 
 from shared.config import JWT_SECRET, JWT_ALGORITHM
 from shared.db.session import get_db
@@ -41,8 +38,6 @@ app.add_middleware(
 ALLOWED_GENRES = ["lo-fi", "modern-pop", "techno"]
 
 
-# ── Auth dependency ───────────────────────────────────────────
-
 def get_current_user_id(authorization: Optional[str] = Header(None)) -> int:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing token")
@@ -53,8 +48,6 @@ def get_current_user_id(authorization: Optional[str] = Header(None)) -> int:
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-
-# ── Схемы ─────────────────────────────────────────────────────
 
 class JobResponse(BaseModel):
     id: int
@@ -69,8 +62,6 @@ class JobStatusResponse(BaseModel):
     progress: int
 
 
-# ── Эндпоинты ─────────────────────────────────────────────────
-
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "upload"}
@@ -83,28 +74,20 @@ async def create_job(
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Принимает аудиофайл + жанр, сохраняет в MinIO, создаёт Job в БД.
-    Статус сразу ставится 'pending' в Redis.
-    """
     if genre not in ALLOWED_GENRES:
         raise HTTPException(status_code=400, detail=f"Unknown genre. Allowed: {ALLOWED_GENRES}")
 
-    # Загружаем файл в MinIO
     content = await file.read()
     ext = pathlib.Path(file.filename).suffix or ".mp3"
     object_name = f"raw/{uuid.uuid4()}{ext}"
     upload_file(content, object_name, file.content_type or "audio/mpeg")
 
-    # Создаём джоб в PostgreSQL
     job = Job(user_id=user_id, genre=genre, status="pending")
     db.add(job)
     await db.commit()
     await db.refresh(job)
 
-    # Пишем начальный статус в Redis
     await set_job_status(job.id, "pending")
-
     return JobResponse(id=job.id, user_id=job.user_id, genre=job.genre, status=job.status)
 
 
@@ -136,11 +119,9 @@ async def job_status(
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Быстрый статус из Redis — для polling с фронтенда."""
     job = await db.get(Job, job_id)
     if not job or job.user_id != user_id:
         raise HTTPException(status_code=404, detail="Job not found")
-
     status = await get_job_status(job_id) or job.status
     progress = await get_job_progress(job_id)
     return JobStatusResponse(job_id=job_id, status=status, progress=progress)

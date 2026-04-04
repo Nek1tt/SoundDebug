@@ -1,21 +1,15 @@
 """
-services/gateway/main.py
-API Gateway. Порт 8000 — единственный публичный порт для фронтенда.
+gateway/main.py — API Gateway. Порт 8000.
+Единственный публичный порт для фронтенда.
 
-Маршрутизация:
   /auth/*    → auth-service:8001
   /jobs/*    → upload-service:8002
   /reports/* → report-service:8003
   /health    → статус всех сервисов
-
-Фронтенд общается ТОЛЬКО с gateway:8000 и не знает о внутренних портах.
 """
 import httpx
-from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 
 from shared.config import AUTH_SERVICE_URL, UPLOAD_SERVICE_URL, REPORT_SERVICE_URL
 
@@ -23,13 +17,12 @@ app = FastAPI(title="API Gateway", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # В prod замените на конкретный домен фронтенда
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# HTTP-клиент с таймаутом (переиспользуется для всех запросов)
 _client: httpx.AsyncClient | None = None
 
 
@@ -44,28 +37,11 @@ async def shutdown():
     await _client.aclose()
 
 
-# ── Хелпер проксирования ──────────────────────────────────────
-
 async def _proxy(request: Request, target_url: str) -> Response:
-    """
-    Пробрасывает запрос к целевому сервису, сохраняя:
-    - метод (GET/POST/PUT/DELETE)
-    - заголовки (включая Authorization)
-    - тело запроса
-    - query-параметры
-    """
-    # Для multipart/form-data (загрузка файлов) читаем иначе
-    content_type = request.headers.get("content-type", "")
-    if "multipart/form-data" in content_type:
-        body = await request.body()
-    else:
-        body = await request.body()
-
+    body = await request.body()
     headers = dict(request.headers)
-    # Убираем заголовки, которые httpx выставит сам
     headers.pop("host", None)
     headers.pop("content-length", None)
-
     resp = await _client.request(
         method=request.method,
         url=target_url,
@@ -80,11 +56,8 @@ async def _proxy(request: Request, target_url: str) -> Response:
     )
 
 
-# ── Маршруты ──────────────────────────────────────────────────
-
 @app.get("/health")
 async def health():
-    """Проверяет живость всех downstream-сервисов."""
     results = {}
     for name, url in [
         ("auth",   AUTH_SERVICE_URL),
@@ -100,13 +73,11 @@ async def health():
     return {"status": overall, "services": results}
 
 
-# /auth/* → auth-service
 @app.api_route("/auth/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy_auth(path: str, request: Request):
     return await _proxy(request, f"{AUTH_SERVICE_URL}/auth/{path}")
 
 
-# /jobs/* → upload-service
 @app.api_route("/jobs", methods=["GET", "POST"])
 async def proxy_jobs_root(request: Request):
     return await _proxy(request, f"{UPLOAD_SERVICE_URL}/jobs")
@@ -117,7 +88,6 @@ async def proxy_jobs(path: str, request: Request):
     return await _proxy(request, f"{UPLOAD_SERVICE_URL}/jobs/{path}")
 
 
-# /reports/* → report-service
 @app.api_route("/reports/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy_reports(path: str, request: Request):
     return await _proxy(request, f"{REPORT_SERVICE_URL}/reports/{path}")

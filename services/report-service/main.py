@@ -1,6 +1,5 @@
 """
-services/report_service/main.py
-Сервис репортов. Порт 8003.
+report-service/main.py — Сервис репортов. Порт 8003.
 
 Эндпоинты:
   GET  /reports/{job_id}  — получить репорт по джобу
@@ -14,9 +13,6 @@ from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 
 from shared.config import JWT_SECRET, JWT_ALGORITHM
 from shared.db.session import get_db
@@ -33,8 +29,6 @@ app.add_middleware(
 )
 
 
-# ── Auth ─────────────────────────────────────────────────────
-
 def get_current_user_id(authorization: Optional[str] = Header(None)) -> int:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing token")
@@ -46,8 +40,6 @@ def get_current_user_id(authorization: Optional[str] = Header(None)) -> int:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
-# ── Схемы ─────────────────────────────────────────────────────
-
 class ReportResponse(BaseModel):
     job_id: int
     metrics: dict[str, Any]
@@ -56,8 +48,6 @@ class ReportResponse(BaseModel):
 class CreateReportRequest(BaseModel):
     metrics: dict[str, Any]
 
-
-# ── Эндпоинты ─────────────────────────────────────────────────
 
 @app.get("/health")
 async def health():
@@ -70,15 +60,12 @@ async def get_report(
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Возвращает репорт, принадлежащий текущему пользователю."""
     job = await db.get(Job, job_id)
     if not job or job.user_id != user_id:
         raise HTTPException(status_code=404, detail="Job not found")
-
     report = await db.get(Report, job_id)
     if not report:
         raise HTTPException(status_code=404, detail="Report not ready yet")
-
     return ReportResponse(job_id=job_id, metrics=report.metrics)
 
 
@@ -88,22 +75,15 @@ async def create_report(
     body: CreateReportRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Создаёт или обновляет репорт.
-    Вызывается внутренним воркером (без JWT — только внутри Docker-сети).
-    """
     job = await db.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-
     report = await db.get(Report, job_id)
     if report:
         report.metrics = body.metrics
     else:
         report = Report(job_id=job_id, metrics=body.metrics)
         db.add(report)
-
-    # Обновляем статус джоба
     job.status = "done"
     await db.commit()
     await db.refresh(report)

@@ -31,7 +31,6 @@ CREATE TABLE IF NOT EXISTS job (
 -- ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS report (
     job_id  INTEGER PRIMARY KEY REFERENCES job(id) ON DELETE CASCADE,
-    id      SERIAL  NOT NULL,
     metrics JSON    NOT NULL DEFAULT '{}'
 );
 
