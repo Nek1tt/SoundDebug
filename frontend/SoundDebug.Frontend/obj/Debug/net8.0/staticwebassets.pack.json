@@ -37,8 +37,16 @@
       "PackagePath": "staticwebassets\\index.html"
     },
     {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\jobs.json",
+      "PackagePath": "staticwebassets\\jobs.json"
+    },
+    {
       "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\sample-data\\weather.json",
       "PackagePath": "staticwebassets\\sample-data\\weather.json"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\user.json",
+      "PackagePath": "staticwebassets\\user.json"
     },
     {
       "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.SoundDebug.Frontend.Microsoft.AspNetCore.StaticWebAssets.props",

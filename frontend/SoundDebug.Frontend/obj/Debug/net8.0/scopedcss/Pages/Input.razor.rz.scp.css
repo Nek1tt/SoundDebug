@@ -47,11 +47,10 @@
     flex-direction: column;
     align-items: center;
 
-    margin: 3%;
+    margin-top: 0.5%;
 }
 
 .upload-button[b-c647ny9fxy] {
-    margin: 3%;
     padding: 10px 16px;
     background-color: transparent;
     color: white;

@@ -1,15 +1,52 @@
 @page "/profile"
 @using SoundDebug.Frontend.Components
+@using SoundDebug.Frontend.Models
+
+@inject HttpClient Http
 
 <PageTitle>SoundDebug</PageTitle>
 
 <div class="main-layout">
+    <div class="bg">
+        <div class="blob"></div>
+        <div class="blob"></div>
+    </div>
     <Navbar/>
+    <div>
+        <span class="user-name">Привет, @Username!</span>
+    </div>
     <div class="jobs-list">
-        <h1 style="color: white;">Список задач</h1>
+        <h1 style="color: white; text-align: center;">Список задач</h1>
         <div class="horizontal-line"></div>
-        <Job/>
-        <Job/>
+        @if (jobs == null)
+        {
+            <p style="color:white;">Загрузка...</p>
+        }
+        else
+        {
+            @foreach (var job in jobs)
+            {
+                <Job Data="job" />
+            }
+        }
     </div>
 </div>
+
+@code {
+    [Parameter] public JobModel Data { get; set; }
+    [Parameter] public UserModel UserData { get; set; } = new UserModel 
+    { 
+        Email = "user1@gmail.com" 
+    };
+
+    private string Username => UserData?.Email?.Split('@')[0];
+    
+    private List<JobModel>? jobs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        jobs = await Http.GetFromJsonAsync<List<JobModel>>("jobs.json");
+    }
+    
+}
 

@@ -1,10 +1,11 @@
 .main-layout {
     display: flex;
     flex-direction: row;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
 
     width: 100%;
-    gap: 40px;
+    max-width: 1000px;
 }
 
 .main-layout a, h1 {
@@ -28,4 +29,11 @@
 .job-number {
     display: flex;
     flex-direction: column;
+}
+
+.status {
+    display: flex;
+    flex-direction: column;
+
+    width: 25%;
 }

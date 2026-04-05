@@ -17,11 +17,12 @@
 }
 
 .right-button[b-59c368j4i9] {
-    text-decoration: none;
+    background-color: transparent;
     color: white;
+    border: none;
     font-size: 20px;
     margin: 0;
-    cursor: pointer;
+    padding: 0;
 }
 
 .right-button:hover[b-59c368j4i9] {
@@ -71,3 +72,4 @@
 .central-button:hover[b-59c368j4i9] {
     filter: blur(2px);
 }
+

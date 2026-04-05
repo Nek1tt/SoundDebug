@@ -68,10 +68,11 @@
 .main-layout[b-7boko47871] {
     display: flex;
     flex-direction: row;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
 
     width: 100%;
-    gap: 40px;
+    max-width: 1000px;
 }
 
 .main-layout a[b-7boko47871], h1[b-7boko47871] {
@@ -96,6 +97,13 @@
     display: flex;
     flex-direction: column;
 }
+
+.status[b-7boko47871] {
+    display: flex;
+    flex-direction: column;
+
+    width: 25%;
+}
 /* /Components/Navbar.razor.rz.scp.css */
 .navbar[b-59c368j4i9] {
     display: flex;
@@ -116,11 +124,12 @@
 }
 
 .right-button[b-59c368j4i9] {
-    text-decoration: none;
+    background-color: transparent;
     color: white;
+    border: none;
     font-size: 20px;
     margin: 0;
-    cursor: pointer;
+    padding: 0;
 }
 
 .right-button:hover[b-59c368j4i9] {
@@ -170,6 +179,7 @@
 .central-button:hover[b-59c368j4i9] {
     filter: blur(2px);
 }
+
 /* /Layout/MainLayout.razor.rz.scp.css */
 .page[b-ssf960r876] {
     position: relative;
@@ -343,11 +353,10 @@ main[b-ssf960r876] {
     flex-direction: column;
     align-items: center;
 
-    margin: 3%;
+    margin-top: 0.5%;
 }
 
 .upload-button[b-c647ny9fxy] {
-    margin: 3%;
     padding: 10px 16px;
     background-color: transparent;
     color: white;
@@ -555,14 +564,47 @@ main[b-ssf960r876] {
 }
 
 .jobs-list[b-dxiyvog1q8] {
-    width: 55%;
-    padding: 1%;
-
-    margin: auto auto;
-
-    border: 1px solid gray;
-
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
+    gap: 10px;
+    width: 55%;
+    padding: 1%;
+    margin: auto auto;
+    border: 1px solid gray;
+}
+
+
+.bg[b-dxiyvog1q8] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.blob[b-dxiyvog1q8] {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #6bbcff, transparent 60%);
+  filter: blur(120px);
+  opacity: 0.7;
+}
+
+.blob:nth-child(1)[b-dxiyvog1q8] {
+  top: 7%;
+  left: 17%;
+}
+
+.blob:nth-child(2)[b-dxiyvog1q8] {
+  top: 30%;
+  left: 60%;
+  background: radial-gradient(circle, #3a7ca5, transparent 60%);
+}
+
+.user-name[b-dxiyvog1q8] {
+  color: white;
+  font-size: 20px;
+  
 }

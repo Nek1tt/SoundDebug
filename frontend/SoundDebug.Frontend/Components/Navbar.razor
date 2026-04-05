@@ -1,11 +1,35 @@
+@inject NavigationManager Navigation
+
 <div class="navbar">
     <a href="/" class="logo">SoundDebug</a>
     <div class="central-block">
         <a href="/input" class="central-button">Попробовать</a>
-        <h1 class="central-button">Примеры</h1>
+        <span class="central-button">Примеры</span>
     </div>
     <div class="right-block">
-        <a href="/login" class="right-button">Войти</a>
-        <h1 class="right-button">Контакты</h1>
+        @if (Authorized)
+        {
+            <button @onclick="LogOut" class="right-button">Выйти</button>
+        }
+        else
+        {
+            <button @onclick="LogIn" class="right-button">Войти</button>
+        }
+        <span class="right-button">Контакты</span>
     </div>
 </div>
+
+@code {
+    private bool Authorized = true;
+    private void LogIn() {
+        Authorized = true;
+
+        Navigation.NavigateTo("/login");
+    }
+
+    private void LogOut() {
+        Authorized = false;
+
+        Navigation.NavigateTo("/");
+    }
+}

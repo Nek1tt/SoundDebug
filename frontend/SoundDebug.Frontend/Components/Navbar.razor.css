@@ -17,11 +17,12 @@
 }
 
 .right-button {
-    text-decoration: none;
+    background-color: transparent;
     color: white;
+    border: none;
     font-size: 20px;
     margin: 0;
-    cursor: pointer;
+    padding: 0;
 }
 
 .right-button:hover {
@@ -71,3 +72,4 @@
 .central-button:hover {
     filter: blur(2px);
 }
+

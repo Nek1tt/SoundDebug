@@ -1,10 +1,17 @@
+@using SoundDebug.Frontend.Models
+
 <div class="main-layout">
     <div class="job-number">
         <label for="job">Задача</label>
-        <a href="/job" id="job">550e8400-e29b-41d4-a716-446655440000</a>
+        <a href="/job" id="job">@Data.Job_ID</a>
     </div>
-    <div>
+    <div class="status">
         <label for="status">Статус</label>
-        <h1 id="status">Обрабатывается</h1>
+        <h1 id="status">@Data.Status</h1>
     </div>
 </div>
+
+
+@code {
+    [Parameter] public JobModel Data { get; set; }
+}

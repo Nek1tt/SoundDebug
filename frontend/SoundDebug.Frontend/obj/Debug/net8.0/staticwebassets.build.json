@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "lo1xeyd6bUziR2N+o0Un73EYKxxgfzVhzpQOMTQR6sg=",
+  "Hash": "UrXODNdKmcP16lK26H3DQAvKdCMYjWcTNnTkXrau+jY=",
   "Source": "SoundDebug.Frontend",
   "BasePath": "/",
   "Mode": "Root",
@@ -7921,6 +7921,25 @@
       "OriginalItemSpec": "wwwroot\\index.html"
     },
     {
+      "Identity": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\jobs.json",
+      "SourceId": "SoundDebug.Frontend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\",
+      "BasePath": "/",
+      "RelativePath": "jobs.json",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\jobs.json"
+    },
+    {
       "Identity": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\sample-data\\weather.json",
       "SourceId": "SoundDebug.Frontend",
       "SourceType": "Discovered",
@@ -7938,6 +7957,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\sample-data\\weather.json"
+    },
+    {
+      "Identity": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\user.json",
+      "SourceId": "SoundDebug.Frontend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\",
+      "BasePath": "/",
+      "RelativePath": "user.json",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\user.json"
     }
   ]
 }

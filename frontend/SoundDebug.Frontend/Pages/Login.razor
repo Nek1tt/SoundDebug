@@ -50,54 +50,6 @@
     private async Task HandleSubmit()
     {
         Navigation.NavigateTo("/profile");
-        @* if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-        {
-            error = "Заполните все поля";
-            return;
-        }
-
-        isLoading = true;
-
-        try {
-            if (isRegisterMode)
-            {
-                // Регистрация
-                var user = new ApplicationUser { UserName = email, Email = email };
-                var result = await UserManager.CreateAsync(user, password);
-
-                if (result.Succeeded)
-                {
-                    await SignInManager.SignInAsync(user, isPersistent: false);
-                    Navigation.NavigateTo("/profile", true);
-                }
-                else
-                {
-                    error = result.Errors.FirstOrDefault()?.Description ?? "Ошибка регистрации";
-                }
-            }
-            else
-            {
-                // Вход
-                var result = await SignInManager.PasswordSignInAsync(
-                    email, 
-                    password, 
-                    isPersistent: false, 
-                    lockoutOnFailure: false);
-
-                if (result.Succeeded)
-                {
-                    Navigation.NavigateTo("/profile", true);
-                }
-                else
-                {
-                    error = "Неверная почта или пароль";
-                }
-            }
-        }
-        finally
-        {
-            isLoading = false;
-        } *@
     }
 
     void ToggleMode()
