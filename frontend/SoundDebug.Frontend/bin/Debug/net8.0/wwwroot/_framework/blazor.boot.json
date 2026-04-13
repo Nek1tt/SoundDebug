@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "SoundDebug.Frontend",
   "resources": {
-    "hash": "sha256-ZtC1mL/Tm/nxEQ9zT67JztWhEm7gkUuJfzimmBFIbH4=",
+    "hash": "sha256-mjXXuQI3lrq7J97zCnYkiz5zcd8+aqjpFXMYhPKHLGs=",
     "jsModuleNative": {
       "dotnet.native.8.0.25.0n5k0gh46q.js": "sha256-A16ka545FHaB+QXjyJ4exXh7XpBAAIFnX8YkC4xAng8="
     },
@@ -30,12 +30,16 @@
       "Microsoft.Extensions.Configuration.Json.wasm": "sha256-CtLsl9w5UTJXGXTbp+SQxMzt9f/gjQ4EkywrtuCscvU=",
       "Microsoft.Extensions.DependencyInjection.wasm": "sha256-CS+QrPLaogl32aUg+ES1Ef5QGKoMyjt3V+wGoiG+tpw=",
       "Microsoft.Extensions.DependencyInjection.Abstractions.wasm": "sha256-NICKEw2hjoBhl1lvxOBh8cxOIN8kkrGHz3pvV1eLLbY=",
+      "Microsoft.Extensions.Diagnostics.wasm": "sha256-DwYV809Z0ejIaJoYI/2JOwpdnor2mp+I9RQ3yOdwu4I=",
+      "Microsoft.Extensions.Diagnostics.Abstractions.wasm": "sha256-wRQa6iRMu4q/KYZKz0X/Pg9Sl1gHGl6q5WKlMcTC+FY=",
       "Microsoft.Extensions.FileProviders.Abstractions.wasm": "sha256-IUopixuV8E09mP+TIgRp/lXEbeacXbUTW7cu0v5B9Tc=",
       "Microsoft.Extensions.FileProviders.Physical.wasm": "sha256-MS+zB0xkKhKk/QdE32ZwKtdlrLMLI/y2NAKPUWhcBVg=",
       "Microsoft.Extensions.FileSystemGlobbing.wasm": "sha256-AnWUKd0qJ8ZNKkRC0AFK2cjjszB7reXiP+bXdIi8bic=",
+      "Microsoft.Extensions.Http.wasm": "sha256-RRU7UwKlLCNYbOfU6JGIHub4kSELNtjk5sAh35jDKL4=",
       "Microsoft.Extensions.Logging.wasm": "sha256-pa0M3exxNvk6g5anUwlaPC99Afawsi1GZvJeU1q/ZGM=",
       "Microsoft.Extensions.Logging.Abstractions.wasm": "sha256-uf1KJp0fVm0d3Bs2JFD1oxo857dVH+MA9AF/tlH5YEw=",
       "Microsoft.Extensions.Options.wasm": "sha256-5/m+yVFGRuY+N4jQnD+QETKH0AfhAsnVze5dJ5ogIVM=",
+      "Microsoft.Extensions.Options.ConfigurationExtensions.wasm": "sha256-ZvGGfReX8HCxjTZQWcXAT+5rrBxfdkUQXbiHoIFK3DA=",
       "Microsoft.Extensions.Primitives.wasm": "sha256-pVrYOTfjb2ITls3LKIByW1t8jwOAWFhmkIVDewtJ1GE=",
       "Microsoft.IdentityModel.Abstractions.wasm": "sha256-BycpLJjZPqI8Mv/4uknqR7S1wn+gVbXBe9zpmJhn46s=",
       "Microsoft.IdentityModel.JsonWebTokens.wasm": "sha256-e/44x7vMIzLzYAr/PPJAOFAgd2OrpU52HSYDiKxet08=",
@@ -43,6 +47,7 @@
       "Microsoft.IdentityModel.Tokens.wasm": "sha256-xqunOjMo38I4oaTdNRQNw66taXi4WBHMWmfCO5jMUGY=",
       "Microsoft.JSInterop.wasm": "sha256-XgRG0TahlFqfTXleWwzItSQMlo3SrVmTgXCy5B2YIow=",
       "Microsoft.JSInterop.WebAssembly.wasm": "sha256-WCepiZsOXTQxvfzEnbfbKDwx6f0WEE6o4hjlGvkMEH0=",
+      "System.Diagnostics.DiagnosticSource.wasm": "sha256-5EbuHB226QeYn/4phOCCPdoC9pPoaR5pnoa+7GU+iT8=",
       "System.IdentityModel.Tokens.Jwt.wasm": "sha256-LiVZtQGMA79CtUG9VTsurWXceXfwMml4io1yjONf4Bs=",
       "System.IO.Pipelines.wasm": "sha256-JqVBy6SV+3qk+IK3VJiyIDt9CsVk6b1/ytTXmrI4mTM=",
       "Microsoft.CSharp.wasm": "sha256-eiw8e7H5NP9STMm/KHZUwaij2pQDzltDuPBuyfybB2A=",
@@ -71,7 +76,6 @@
       "System.Data.wasm": "sha256-bTLoyQ3MzfVlr9Dyb26Pxh6jXDltYlckLfUP0SS81s4=",
       "System.Diagnostics.Contracts.wasm": "sha256-mK6Fto0ZrxjkcLaM/Y3b6Cvdx/35RRbFyz9qmL70CR4=",
       "System.Diagnostics.Debug.wasm": "sha256-gIuOiiPF7DeXs2l7dbSfimkg4MBSdkJvB6y0G4yrimg=",
-      "System.Diagnostics.DiagnosticSource.wasm": "sha256-5EbuHB226QeYn/4phOCCPdoC9pPoaR5pnoa+7GU+iT8=",
       "System.Diagnostics.FileVersionInfo.wasm": "sha256-0RGYhdgXUvBGNuMqXSo3hnWOcPE9NU42g+6tbxe7qSI=",
       "System.Diagnostics.Process.wasm": "sha256-HhORl8TVpuFdgFSYVi6OfkRRvgmfTl/h8SZl0uebxao=",
       "System.Diagnostics.StackTrace.wasm": "sha256-c2eGpPhlg15HQOizSQ0CE1ylO/MW5I0O93iqksWSwR4=",
@@ -213,10 +217,10 @@
       "mscorlib.wasm": "sha256-ovgR6YJeXMcsAhvGJVdyjhD5pU34EEAc0BGQYTUAyNk=",
       "netstandard.wasm": "sha256-90+pPOP/3NxK0buBFJlcvDw0r6Nk/i3+oM9dt2x+LPM=",
       "System.Private.CoreLib.wasm": "sha256-IXKG8p3ppN4zPjJOxht5wSXCcbFNPH6InVm7fsThBPI=",
-      "SoundDebug.Frontend.wasm": "sha256-+Te5DzuzS37CPp02Axptgg1fptaQVgBh3BIXl5Snpl8="
+      "SoundDebug.Frontend.wasm": "sha256-FZe60Zcp/kDB6XOde2F0d1/FeqRiHSytp6Qc5wbPiV0="
     },
     "pdb": {
-      "SoundDebug.Frontend.pdb": "sha256-3mEXfp4i/YHgiiBweQQMmnT1TG49pcKpym93mwK0RdM="
+      "SoundDebug.Frontend.pdb": "sha256-LJIN0XoeaII/hOEK8WYlnYHQB6Yr1Rnd27QN7P5f/mQ="
     }
   },
   "cacheBootResources": true,

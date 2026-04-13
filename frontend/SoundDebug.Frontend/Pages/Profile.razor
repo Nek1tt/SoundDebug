@@ -3,6 +3,7 @@
 @using SoundDebug.Frontend.Models
 @inject IJSRuntime JS
 @inject AuthService AuthService
+@inject UploadService UploadService
 
 <PageTitle>SoundDebug</PageTitle>
 
@@ -25,17 +26,17 @@
     <div class="jobs-list">
         <h1 style="color: white; text-align: center;">Список задач</h1>
         <div class="horizontal-line"></div>
-        @* @if (jobs == null)
+        @if (userJobs == null)
         {
             <p style="color:white;">Загрузка...</p>
         }
         else
         {
-            @foreach (var job in jobs)
+            @foreach (var job in userJobs)
             {
                 <Job Data="job" />
             }
-        } *@
+        }
     </div>
 </div>
 
@@ -43,6 +44,8 @@
     private string? Email;
     private string? Username;
     private bool isLoaded = false;
+
+    private List<JobModel?> userJobs;
 
     protected override async Task OnInitializedAsync()
     {
@@ -55,6 +58,8 @@
         {
             Email = user.Email;
         }
+
+        userJobs = await UploadService.GetJobs();
 
         Username = Email?.Split('@')[0];
         isLoaded = true;

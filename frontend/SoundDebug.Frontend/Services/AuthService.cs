@@ -2,25 +2,26 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.JSInterop;
+using Microsoft.VisualBasic;
 using SoundDebug.Frontend.Models;
 
 public class AuthService
 {
-    private readonly HttpClient _http;
+    private readonly HttpClient _authHttp;
     private readonly IJSRuntime _js;
 
     public bool IsAuthenticated { get; private set; } = false;
     public string? Token { get; private set; }
 
-    public AuthService(HttpClient http, IJSRuntime js)
+    public AuthService(IHttpClientFactory factory, IJSRuntime js)
     {
-        _http = http;
+        _authHttp = factory.CreateClient("Auth");
         _js = js;
     }
 
     public async Task<bool> LoginAsync(string email, string password)
     {
-        var response = await _http.PostAsJsonAsync("/auth/login", new { email, password });
+        var response = await _authHttp.PostAsJsonAsync("/auth/login", new { email, password });
         if (!response.IsSuccessStatusCode) return false;
 
         var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
@@ -30,7 +31,7 @@ public class AuthService
         await _js.InvokeVoidAsync("localStorage.setItem", "authToken", Token);
         IsAuthenticated = true;
 
-        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
+        _authHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
         return true;
     }
 
@@ -39,7 +40,7 @@ public class AuthService
         Token = null;
         IsAuthenticated = false;
         await _js.InvokeVoidAsync("localStorage.removeItem", "authToken");
-        _http.DefaultRequestHeaders.Authorization = null;
+        _authHttp.DefaultRequestHeaders.Authorization = null;
     }
 
     public async Task InitializeAsync()
@@ -48,7 +49,7 @@ public class AuthService
         if (!string.IsNullOrEmpty(Token))
         {
             IsAuthenticated = true;
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
+            _authHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
         }
     }
 
@@ -63,7 +64,7 @@ public class AuthService
             var encodedToken = Uri.EscapeDataString(token);
             // await _js.InvokeVoidAsync("console.log", "Токен:", encodedToken);
 
-            var response = await _http.GetAsync($"/auth/me?token={encodedToken}");
+            var response = await _authHttp.GetAsync($"/auth/me?token={encodedToken}");
 
             if (!response.IsSuccessStatusCode)
                 return null;

@@ -2,6 +2,8 @@
 @using SoundDebug.Frontend.Components
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject HttpClient Http
+@inject UploadService UploadService
 
 <PageTitle>SoundDebug</PageTitle>
 
@@ -24,7 +26,8 @@
 @code {
     private List<IBrowserFile> trackFiles = new();
     private List<IBrowserFile> referenceFiles = new();
-    private string genre = string.Empty;
+    private string genre = "";
+    private string error = "";
 
     private async Task HandleTrack(IBrowserFile[] files)
     {
@@ -44,29 +47,31 @@
         await JS.InvokeVoidAsync("console.log", "Выбранный жанр:", genre);
     }
 
-    public class UploadRequest
-    {
-        public string Genre { get; set; } = string.Empty;
-        public List<string> Tracks { get; set; } = new();
-        public List<string> References { get; set; } = new();
-    }
-
     private async Task CreateJson()
     {
-        var request = new UploadRequest
+        try
         {
-            Genre = genre,
-            Tracks = trackFiles.Select(f => f.Name).ToList(),
-            References = referenceFiles.Select(f => f.Name).ToList()
-        };
+            if (trackFiles == null || trackFiles.Count == 0)
+            {
+                error = "Файл не выбран";
+                return;
+            }
 
-        var json = System.Text.Json.JsonSerializer.Serialize(request, new System.Text.Json.JsonSerializerOptions
+            if (string.IsNullOrWhiteSpace(genre))
+            {
+                error = "Жанр не выбран";
+                return;
+            }
+
+            var response = await UploadService.CreateJob(genre, trackFiles[0]);
+
+            error = "";
+
+            Navigation.NavigateTo("/loading");
+        }
+        catch (Exception ex)
         {
-            WriteIndented = true
-        });
-
-        Navigation.NavigateTo("/loading");
-
-        await JS.InvokeVoidAsync("console.log", json);
+            error = ex.Message;
+        }
     }
 }

@@ -6,11 +6,18 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp => new HttpClient
+builder.Services.AddHttpClient("Auth", client =>
 {
-    BaseAddress = new Uri("http://localhost:8001")
+    client.BaseAddress = new Uri("http://localhost:8001/");
 });
 
+builder.Services.AddHttpClient("Upload", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:8002/");
+});
+
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UploadService>();
 
 await builder.Build().RunAsync();
