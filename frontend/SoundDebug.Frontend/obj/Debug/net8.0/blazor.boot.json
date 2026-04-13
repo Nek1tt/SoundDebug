@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "SoundDebug.Frontend",
   "resources": {
-    "hash": "sha256-VotL79eRQ3APVxVwf3B+zIBEGTr/j4bT2+Io0WQCrvk=",
+    "hash": "sha256-ZtC1mL/Tm/nxEQ9zT67JztWhEm7gkUuJfzimmBFIbH4=",
     "jsModuleNative": {
       "dotnet.native.8.0.25.0n5k0gh46q.js": "sha256-A16ka545FHaB+QXjyJ4exXh7XpBAAIFnX8YkC4xAng8="
     },
@@ -37,8 +37,13 @@
       "Microsoft.Extensions.Logging.Abstractions.wasm": "sha256-uf1KJp0fVm0d3Bs2JFD1oxo857dVH+MA9AF/tlH5YEw=",
       "Microsoft.Extensions.Options.wasm": "sha256-5/m+yVFGRuY+N4jQnD+QETKH0AfhAsnVze5dJ5ogIVM=",
       "Microsoft.Extensions.Primitives.wasm": "sha256-pVrYOTfjb2ITls3LKIByW1t8jwOAWFhmkIVDewtJ1GE=",
+      "Microsoft.IdentityModel.Abstractions.wasm": "sha256-BycpLJjZPqI8Mv/4uknqR7S1wn+gVbXBe9zpmJhn46s=",
+      "Microsoft.IdentityModel.JsonWebTokens.wasm": "sha256-e/44x7vMIzLzYAr/PPJAOFAgd2OrpU52HSYDiKxet08=",
+      "Microsoft.IdentityModel.Logging.wasm": "sha256-lgFkblGJU3+cu8ZKjUY77cmYAdSG7X0XiwZauRitBdE=",
+      "Microsoft.IdentityModel.Tokens.wasm": "sha256-xqunOjMo38I4oaTdNRQNw66taXi4WBHMWmfCO5jMUGY=",
       "Microsoft.JSInterop.wasm": "sha256-XgRG0TahlFqfTXleWwzItSQMlo3SrVmTgXCy5B2YIow=",
       "Microsoft.JSInterop.WebAssembly.wasm": "sha256-WCepiZsOXTQxvfzEnbfbKDwx6f0WEE6o4hjlGvkMEH0=",
+      "System.IdentityModel.Tokens.Jwt.wasm": "sha256-LiVZtQGMA79CtUG9VTsurWXceXfwMml4io1yjONf4Bs=",
       "System.IO.Pipelines.wasm": "sha256-JqVBy6SV+3qk+IK3VJiyIDt9CsVk6b1/ytTXmrI4mTM=",
       "Microsoft.CSharp.wasm": "sha256-eiw8e7H5NP9STMm/KHZUwaij2pQDzltDuPBuyfybB2A=",
       "Microsoft.VisualBasic.Core.wasm": "sha256-NbfojRvyBCsPaG3uT26Nr4B/p6UKIOFtqvTyIn4e34s=",
@@ -208,10 +213,10 @@
       "mscorlib.wasm": "sha256-ovgR6YJeXMcsAhvGJVdyjhD5pU34EEAc0BGQYTUAyNk=",
       "netstandard.wasm": "sha256-90+pPOP/3NxK0buBFJlcvDw0r6Nk/i3+oM9dt2x+LPM=",
       "System.Private.CoreLib.wasm": "sha256-IXKG8p3ppN4zPjJOxht5wSXCcbFNPH6InVm7fsThBPI=",
-      "SoundDebug.Frontend.wasm": "sha256-NhGa05FhYAdqHQgAnyReumwVEgmOuBjuyloDNKCsCPw="
+      "SoundDebug.Frontend.wasm": "sha256-+Te5DzuzS37CPp02Axptgg1fptaQVgBh3BIXl5Snpl8="
     },
     "pdb": {
-      "SoundDebug.Frontend.pdb": "sha256-z5aCp3V9g+0SGgI8b10ZGnFrqRNp4vAym3sWZpIpq3w="
+      "SoundDebug.Frontend.pdb": "sha256-3mEXfp4i/YHgiiBweQQMmnT1TG49pcKpym93mwK0RdM="
     }
   },
   "cacheBootResources": true,

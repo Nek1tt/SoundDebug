@@ -1,4 +1,5 @@
 @inject NavigationManager Navigation
+@inject AuthService AuthService
 
 <div class="navbar">
     <a href="/" class="logo">SoundDebug</a>
@@ -7,7 +8,7 @@
         <span class="central-button">Примеры</span>
     </div>
     <div class="right-block">
-        @if (Authorized)
+        @if (AuthService.IsAuthenticated)
         {
             <button @onclick="LogOut" class="right-button">Выйти</button>
         }
@@ -22,14 +23,11 @@
 @code {
     private bool Authorized = true;
     private void LogIn() {
-        Authorized = true;
-
         Navigation.NavigateTo("/login");
     }
 
-    private void LogOut() {
-        Authorized = false;
-
+    private async Task LogOut() {
+        await AuthService.LogoutAsync();
         Navigation.NavigateTo("/");
     }
 }

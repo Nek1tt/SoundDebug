@@ -2,6 +2,8 @@
 
 @using SoundDebug.Frontend
 @inject NavigationManager Navigation
+@inject HttpClient Http
+@inject AuthService AuthService
 
 <PageTitle>SoundDebug</PageTitle>
 
@@ -49,7 +51,49 @@
 
     private async Task HandleSubmit()
     {
-        Navigation.NavigateTo("/profile");
+        error = "";
+        isLoading = true;
+
+        try
+        {
+            bool success;
+
+            if (isRegisterMode)
+            {
+                // регистрация
+                var response = await Http.PostAsJsonAsync("/auth/register", new { email, password });
+                if (!response.IsSuccessStatusCode)
+                {
+                    error = "Ошибка регистрации";
+                    return;
+                }
+
+                // после успешной регистрации — сразу логинимся
+                success = await AuthService.LoginAsync(email, password);
+            }
+            else
+            {
+                // логин
+                success = await AuthService.LoginAsync(email, password);
+            }
+
+            if (success)
+            {
+                Navigation.NavigateTo("/profile");
+            }
+            else
+            {
+                error = "Неверная почта или пароль";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     void ToggleMode()

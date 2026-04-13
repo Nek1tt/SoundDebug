@@ -1,8 +1,8 @@
 @page "/profile"
 @using SoundDebug.Frontend.Components
 @using SoundDebug.Frontend.Models
-
-@inject HttpClient Http
+@inject IJSRuntime JS
+@inject AuthService AuthService
 
 <PageTitle>SoundDebug</PageTitle>
 
@@ -13,12 +13,19 @@
     </div>
     <Navbar/>
     <div>
-        <span class="user-name">Привет, @Username!</span>
+        @if (!isLoaded)
+        {
+            <p style="color:white;">Загрузка...</p>
+        }
+        else
+        {
+            <span class="user-name">Привет, @Username!</span>
+        }
     </div>
     <div class="jobs-list">
         <h1 style="color: white; text-align: center;">Список задач</h1>
         <div class="horizontal-line"></div>
-        @if (jobs == null)
+        @* @if (jobs == null)
         {
             <p style="color:white;">Загрузка...</p>
         }
@@ -28,24 +35,29 @@
             {
                 <Job Data="job" />
             }
-        }
+        } *@
     </div>
 </div>
 
 @code {
-    [Parameter] public JobModel Data { get; set; }
-    [Parameter] public UserModel UserData { get; set; } = new UserModel 
-    { 
-        Email = "user1@gmail.com" 
-    };
-
-    private string Username => UserData?.Email?.Split('@')[0];
-    
-    private List<JobModel>? jobs;
+    private string? Email;
+    private string? Username;
+    private bool isLoaded = false;
 
     protected override async Task OnInitializedAsync()
     {
-        jobs = await Http.GetFromJsonAsync<List<JobModel>>("jobs.json");
+        await AuthService.InitializeAsync();
+        UserModel? user = await AuthService.GetMeAsync();
+
+        @* await JS.InvokeVoidAsync("console.log", "Пользователь:", user); *@
+
+        if (user != null)
+        {
+            Email = user.Email;
+        }
+
+        Username = Email?.Split('@')[0];
+        isLoaded = true;
     }
     
 }
