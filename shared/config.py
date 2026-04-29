@@ -24,7 +24,7 @@ MINIO_BUCKET: str     = os.environ.get("MINIO_BUCKET", "uploads")
 # ── JWT ────────────────────────────────────────────────────────
 JWT_SECRET: str        = os.environ.get("JWT_SECRET", "supersecretkey")
 JWT_ALGORITHM: str     = os.environ.get("JWT_ALGORITHM", "HS256")
-JWT_EXPIRE_MINUTES: int = int(os.environ.get("JWT_EXPIRE_MINUTES", "60"))
+JWT_EXPIRE_MINUTES: int = int(os.environ.get("JWT_EXPIRE_MINUTES", "10080"))
 
 # ── URL внутренних сервисов (используются в gateway) ──────────
 AUTH_SERVICE_URL: str   = os.environ.get("AUTH_SERVICE_URL", "http://localhost:8001")

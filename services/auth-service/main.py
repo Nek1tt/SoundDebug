@@ -8,6 +8,7 @@ auth-service/main.py — Сервис аутентификации. Порт 800
   GET  /health         — проверка живости
 """
 from datetime import datetime, timedelta
+from typing import Optional
 
 import bcrypt
 import jwt
@@ -95,7 +96,10 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 
 @app.get("/auth/me", response_model=UserResponse)
-async def me(token: str, db: AsyncSession = Depends(get_db)):
+async def me(authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = authorization.removeprefix("Bearer ")
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user_id = int(payload["sub"])
