@@ -1,0 +1,19 @@
+# services/workers/dsp_worker/requirements.txt
+
+# Web / task queue
+celery[redis]==5.3.6
+redis==5.0.4
+httpx==0.27.0
+
+# DSP core
+librosa==0.10.2
+pyloudnorm==0.1.1
+soundfile==0.12.1
+numpy==1.26.4
+scipy==1.13.0
+
+# Audio I/O backends (soundfile dependency)
+cffi>=1.0.0
+
+# MinIO (shared layer)
+minio==7.2.7
