@@ -24,6 +24,8 @@
     font-size: 20px;
     margin: 0;
     padding: 0;
+    text-decoration: none;
+    outline: none;
 }
 
 .right-button:hover[b-59c368j4i9] {

@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "9jvaLe+d064EyZ4zzirRAo7An6dn5NmdvzdaesemUTI=",
+  "Hash": "UyC/70+Sr4q4nuqmxNNc+dw7eDSZqg5zv/N74mBKCaY=",
   "Source": "SoundDebug.Frontend",
   "BasePath": "/",
   "Mode": "Root",
@@ -8225,6 +8225,25 @@
       "OriginalItemSpec": "wwwroot\\favicon.png"
     },
     {
+      "Identity": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\fonts\\cour.ttf",
+      "SourceId": "SoundDebug.Frontend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\",
+      "BasePath": "/",
+      "RelativePath": "fonts/cour.ttf",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\fonts\\cour.ttf"
+    },
+    {
       "Identity": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\icon-192.png",
       "SourceId": "SoundDebug.Frontend",
       "SourceType": "Discovered",
@@ -8280,6 +8299,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\jobs.json"
+    },
+    {
+      "Identity": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\logo.png",
+      "SourceId": "SoundDebug.Frontend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\",
+      "BasePath": "/",
+      "RelativePath": "logo.png",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\logo.png"
     },
     {
       "Identity": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\sample-data\\weather.json",

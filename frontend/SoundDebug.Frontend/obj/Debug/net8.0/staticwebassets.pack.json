@@ -29,6 +29,10 @@
       "PackagePath": "staticwebassets\\favicon.png"
     },
     {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\fonts\\cour.ttf",
+      "PackagePath": "staticwebassets\\fonts\\cour.ttf"
+    },
+    {
       "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\icon-192.png",
       "PackagePath": "staticwebassets\\icon-192.png"
     },
@@ -39,6 +43,10 @@
     {
       "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\jobs.json",
       "PackagePath": "staticwebassets\\jobs.json"
+    },
+    {
+      "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\logo.png",
+      "PackagePath": "staticwebassets\\logo.png"
     },
     {
       "Id": "D:\\Studying\\6\\SoundDebug\\frontend\\SoundDebug.Frontend\\wwwroot\\sample-data\\weather.json",

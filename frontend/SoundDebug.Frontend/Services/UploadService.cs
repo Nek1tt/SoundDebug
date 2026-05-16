@@ -46,9 +46,24 @@ public class UploadService
         if (!response.IsSuccessStatusCode)
             return null;
 
-        await _js.InvokeVoidAsync("console.log", "Токен:", response);
+        // await _js.InvokeVoidAsync("console.log", "Задачи:", response);
 
         var json = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<List<JobModel>>(json);
+    }
+
+    public async Task<JobModel?> GetJob(int jobId)
+    {
+        var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
+        _uploadHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _uploadHttp.GetAsync($"jobs/{jobId}");
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        // await _js.InvokeVoidAsync("console.log", "Задача:", response);
+
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<JobModel>(json);
     }
 }

@@ -6,17 +6,18 @@
     <div class="central-block">
         <a href="/input" class="central-button">Попробовать</a>
         <span class="central-button">Примеры</span>
+        <span class="central-button">Контакты</span>
     </div>
     <div class="right-block">
         @if (AuthService.IsAuthenticated)
         {
+            <a href="/profile" class="right-button">Профиль</a>
             <button @onclick="LogOut" class="right-button">Выйти</button>
         }
         else
         {
             <button @onclick="LogIn" class="right-button">Войти</button>
         }
-        <span class="right-button">Контакты</span>
     </div>
 </div>
 

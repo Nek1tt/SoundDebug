@@ -1,5 +1,8 @@
-@page "/job"
+@page "/job/{jobId:int}"
 @using SoundDebug.Frontend.Components
+@using SoundDebug.Frontend.Models
+@inject IJSRuntime JS
+@inject UploadService UploadService
 
 <div class="main-layout">
     <Navbar/>
@@ -7,13 +10,37 @@
         <div class="blob"></div>
         <div class="blob"></div>
     </div>
-    <h1>number of job</h1>
-    <div class="graphics-container">
-        <div class="spectr">
-            <h1 style="color: black;">Спектр</h1>
+    @if (job is null || job.status == "pending")
+    {
+        <div class="glass-loader">
+            <div class="spinner"></div>
+            @* <div class="text">В обработке...</div> *@
         </div>
-        <div class="spectrogramm">
-            <h1 style="color: black;">Спектрограмма</h1>
+    }
+    else
+    {
+        <h1>@jobId</h1>
+        <div class="graphics-container">
+            <div class="spectr">
+                <h1 style="color: black;">Спектр</h1>
+            </div>
+            <div class="spectrogramm">
+                <h1 style="color: black;">Спектрограмма</h1>
+            </div>
         </div>
-    </div>
+    }
 </div>
+
+@code {
+    [Parameter]
+    public int jobId { get; set; }
+
+    public JobModel? job; 
+
+    protected override async Task OnInitializedAsync()
+    {
+        job = await UploadService.GetJob(jobId);
+
+        await JS.InvokeVoidAsync("console.log", "Задача:", job);
+    }
+}
