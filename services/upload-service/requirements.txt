@@ -7,3 +7,4 @@ redis[asyncio]==5.0.4
 minio==7.2.7
 python-multipart==0.0.9
 pydantic==2.7.1
+celery[redis]==5.3.6

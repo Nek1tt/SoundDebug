@@ -13,13 +13,14 @@ import pathlib
 from typing import Optional
 
 import jwt
+from celery import Celery
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.config import JWT_SECRET, JWT_ALGORITHM
+from shared.config import JWT_SECRET, JWT_ALGORITHM, REDIS_URL
 from shared.db.session import get_db
 from shared.db.models import Job
 from shared.storage.redis_client import set_job_status, get_job_status, get_job_progress
@@ -36,6 +37,9 @@ app.add_middleware(
 )
 
 ALLOWED_GENRES = ["lo-fi", "modern-pop", "techno"]
+
+# ── Celery клиент (только для отправки задач, без воркера) ────────────────────
+_celery = Celery(broker=REDIS_URL, backend=REDIS_URL)
 
 
 def get_current_user_id(authorization: Optional[str] = Header(None)) -> int:
@@ -88,6 +92,18 @@ async def create_job(
     await db.refresh(job)
 
     await set_job_status(job.id, "pending")
+
+    # ── Запускаем DSP-воркер ──────────────────────────────────────────────────
+    _celery.send_task(
+        "dsp_worker.worker.analyze_track",
+        kwargs={
+            "job_id":  job.id,
+            "s3_key":  object_name,
+            "genre":   genre,
+        },
+        queue="dsp",
+    )
+
     return JobResponse(id=job.id, user_id=job.user_id, genre=job.genre, status=job.status)
 
 

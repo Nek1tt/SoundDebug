@@ -140,6 +140,28 @@ services:
       - upload-service
       - report-service
 
+  dsp-worker:
+    build:
+      context: .
+      dockerfile: services/workers/dsp_worker/Dockerfile
+    container_name: music_dsp_worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-secret}@postgres:5432/${POSTGRES_DB:-musicdb}
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET: uploads
+      REPORT_SERVICE_URL: http://report-service:8003
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      report-service:
+        condition: service_started
+
 volumes:
   postgres_data:
   minio_data:
