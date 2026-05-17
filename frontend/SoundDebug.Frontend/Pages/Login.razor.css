@@ -81,8 +81,10 @@
   cursor: pointer;
   transition: 0.3s;
 
-  width: 60%;
+  width: 80%;
   padding: 5px;
+
+  /* background-color: red; */
 
   font-size: 30px;
 }

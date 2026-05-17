@@ -2,7 +2,6 @@
 
 @using SoundDebug.Frontend
 @inject NavigationManager Navigation
-@inject HttpClient Http
 @inject AuthService AuthService
 
 <PageTitle>SoundDebug</PageTitle>
@@ -61,8 +60,8 @@
             if (isRegisterMode)
             {
                 // регистрация
-                var response = await Http.PostAsJsonAsync("/auth/register", new { email, password });
-                if (!response.IsSuccessStatusCode)
+                var response = await AuthService.RegisterAsync(email, password);
+                if (!response)
                 {
                     error = "Ошибка регистрации";
                     return;

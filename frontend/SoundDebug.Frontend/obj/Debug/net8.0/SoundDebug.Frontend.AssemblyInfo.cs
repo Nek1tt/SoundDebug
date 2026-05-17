@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SoundDebug.Frontend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c542d7ea6a324a3e2c985b318dd5ebc0a2ceb298")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4d3cbbb19f55723fc43d5fb57b2ded027af638ad")]
 [assembly: System.Reflection.AssemblyProductAttribute("SoundDebug.Frontend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SoundDebug.Frontend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

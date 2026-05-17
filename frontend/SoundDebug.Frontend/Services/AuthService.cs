@@ -35,6 +35,23 @@ public class AuthService
         return true;
     }
 
+    public async Task<bool> RegisterAsync(string email, string password)
+    {
+        var response = await _authHttp.PostAsJsonAsync("/auth/register", new { email, password });
+        if (!response.IsSuccessStatusCode) return false;
+
+        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        if (result == null) return false;
+
+        Token = result.access_token;
+        await _js.InvokeVoidAsync("localStorage.setItem", "authToken", Token);
+        IsAuthenticated = true;
+
+        _authHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
+
+        return true;
+    }
+
     public async Task LogoutAsync()
     {
         Token = null;
