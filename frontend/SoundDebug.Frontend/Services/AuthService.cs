@@ -74,17 +74,17 @@ public class AuthService
     {
         try
         {
-            var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var token = await _js.InvokeAsync<string>(
+                "localStorage.getItem",
+                "authToken"
+            );
 
             if (string.IsNullOrWhiteSpace(token)) return null;
 
-            var encodedToken = Uri.EscapeDataString(token);
-            // await _js.InvokeVoidAsync("console.log", "Токен:", encodedToken);
+            _authHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await _authHttp.GetAsync($"/auth/me?token={encodedToken}");
-
-            if (!response.IsSuccessStatusCode)
-                return null;
+            var response = await _authHttp.GetAsync("/auth/me");
+            if (!response.IsSuccessStatusCode) return null;
 
             var user = await response.Content.ReadFromJsonAsync<UserModel>();
 

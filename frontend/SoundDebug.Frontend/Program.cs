@@ -16,8 +16,14 @@ builder.Services.AddHttpClient("Upload", client =>
     client.BaseAddress = new Uri("http://localhost:8002/");
 });
 
+builder.Services.AddHttpClient("Report", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:8003/");
+});
+
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UploadService>();
+builder.Services.AddScoped<ReportService>();
 
 await builder.Build().RunAsync();

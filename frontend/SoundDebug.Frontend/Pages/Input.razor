@@ -1,5 +1,6 @@
 @page "/input"
 @using SoundDebug.Frontend.Components
+@using System.Text.Json
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject HttpClient Http
@@ -28,6 +29,12 @@
     private List<IBrowserFile> referenceFiles = new();
     private string genre = "";
     private string error = "";
+
+    public class CreateJobResponse
+    {
+        public string Id { get; set; }
+
+    }
 
     private async Task HandleTrack(IBrowserFile[] files)
     {
@@ -65,9 +72,10 @@
 
             var response = await UploadService.CreateJob(genre, trackFiles[0]);
 
-            error = "";
+            using var doc = JsonDocument.Parse(response);
+            var jobId = doc.RootElement.GetProperty("id").GetInt32();
 
-            Navigation.NavigateTo("/loading");
+            Navigation.NavigateTo($"/job/{jobId}");
         }
         catch (Exception ex)
         {
