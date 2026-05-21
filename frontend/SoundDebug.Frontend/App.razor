@@ -19,7 +19,7 @@ else
 }
 
 @code {
-    [Inject] private AuthService AuthService { get; set; } 
+    [Inject] private AuthService AuthService { get; set; } = default!;
     private bool isInitialized = false;
 
     protected override async Task OnInitializedAsync()

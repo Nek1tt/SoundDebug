@@ -46,12 +46,12 @@
     private string password = "";
     private string error = "";
     private bool isRegisterMode = false;
-    private bool isLoading = false;
+    @* private bool isLoading = false; *@
 
     private async Task HandleSubmit()
     {
         error = "";
-        isLoading = true;
+        @* isLoading = true; *@
 
         try
         {
@@ -91,7 +91,7 @@
         }
         finally
         {
-            isLoading = false;
+            @* isLoading = false; *@
         }
     }
 

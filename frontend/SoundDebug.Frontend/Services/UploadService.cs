@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using System.Net.Http.Headers;
 using SoundDebug.Frontend.Models;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 public class UploadService
 {
     private readonly HttpClient _uploadHttp;
@@ -37,7 +38,7 @@ public class UploadService
         return await response.Content.ReadAsStringAsync();
     }
 
-    public async Task<List<JobModel?>> GetJobs()
+    public async Task<List<JobModel>?> GetJobs()
     {
         var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
         _uploadHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -49,7 +50,8 @@ public class UploadService
         // await _js.InvokeVoidAsync("console.log", "Задачи:", response);
 
         var json = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<List<JobModel>>(json);
+
+        return JsonSerializer.Deserialize<List<JobModel>>(json)!;
     }
 
     public async Task<JobModel?> GetJob(int jobId)
@@ -65,5 +67,18 @@ public class UploadService
 
         var json = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<JobModel>(json);
+    }
+
+    public async Task<JobStatusModel?> GetJobStatus(int jobId)
+    {
+        var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
+        _uploadHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _uploadHttp.GetAsync($"jobs/{jobId}/status");
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<JobStatusModel>(json);
     }
 }

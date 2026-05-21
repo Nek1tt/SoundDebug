@@ -32,7 +32,7 @@
 
     public class CreateJobResponse
     {
-        public string Id { get; set; }
+        public string? Id { get; set; }
 
     }
 
@@ -70,7 +70,12 @@
                 return;
             }
 
-            var response = await UploadService.CreateJob(genre, trackFiles[0]);
+            string? response = await UploadService.CreateJob(genre, trackFiles[0]);
+
+            if (string.IsNullOrEmpty(response))
+            {
+                return; 
+            }
 
             using var doc = JsonDocument.Parse(response);
             var jobId = doc.RootElement.GetProperty("id").GetInt32();

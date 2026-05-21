@@ -1,6 +1,7 @@
 @page "/profile"
 @using SoundDebug.Frontend.Components
 @using SoundDebug.Frontend.Models
+@using System.Threading
 @inject IJSRuntime JS
 @inject AuthService AuthService
 @inject UploadService UploadService
@@ -41,11 +42,12 @@
 </div>
 
 @code {
+
     private string? Email;
     private string? Username;
-    private bool isLoaded = false;
+    @* private bool isLoaded = false; *@
 
-    private List<JobModel?> userJobs;
+    private List<JobModel>? userJobs;
 
     protected override async Task OnInitializedAsync()
     {
@@ -59,11 +61,10 @@
             Email = user.Email;
         }
 
-        userJobs = await UploadService.GetJobs();
+        userJobs = await UploadService.GetJobs() ;
 
         Username = Email?.Split('@')[0];
-        isLoaded = true;
+        @* isLoaded = true; *@
     }
-    
 }
 

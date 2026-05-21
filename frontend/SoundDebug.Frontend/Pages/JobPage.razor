@@ -1,52 +1,224 @@
 @page "/job/{jobId:int}"
 @using SoundDebug.Frontend.Components
 @using SoundDebug.Frontend.Models
+@using System.Text.Json.Serialization
 @inject IJSRuntime JS
-@* @inject UploadService UploadService *@
+@inject UploadService UploadService
 @inject ReportService ReportService
 
+@implements IDisposable
+
 <div class="main-layout">
-    <Navbar/>
+    <Navbar />
     <div class="bg">
         <div class="blob"></div>
         <div class="blob"></div>
     </div>
-    @* @if (job is null || job.status == "pending")
-    {
-        <div class="glass-loader">
-            <div class="spinner"></div>
-            @* <div class="text">В обработке...</div> *@
-        @* </div>
-    } *@
-    @* else *@
-    @* {  *@
-        <h1>Номер задачи: @jobId</h1>
-    @* } *@
+
+    <div class="content-container">
+        @if (report == null)
+        {
+            <!-- СОСТОЯНИЕ ЗАГРУЗКИ -->
+            <div class="loader-section">
+                <h2 class="job-id">Задача #@jobId</h2>
+                
+                <div class="progress-wrapper">
+                    <svg class="progress-ring" width="200" height="200">
+                        <circle class="progress-ring__background" stroke="rgba(255,255,255,0.1)" stroke-width="8" fill="transparent" r="90" cx="100" cy="100" />
+                        <circle class="progress-ring__circle" stroke="#00ffcc" stroke-width="8" stroke-dasharray="565.48" stroke-dashoffset="@(565.48 - (565.48 * (status?.Progress ?? 0) / 100))" stroke-linecap="round" fill="transparent" r="90" cx="100" cy="100" />
+                    </svg>
+                    <div class="progress-text">
+                        <span class="percent">@(status?.Progress ?? 0)%</span>
+                        <span class="status-label">@status?.Status</span>
+                    </div>
+                </div>
+                
+                <p class="loading-hint">Анализируем частоты и динамику вашего трека...</p>
+            </div>
+        }
+        else
+        {
+            <!-- СОСТОЯНИЕ ГОТОВНОСТИ -->
+            <div class="report-container animate-fade-in">
+                <div class="report-header">
+                    <h1>Результаты отчета</h1>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon">Tempo</div>
+                        <span class="value">@(report.Rhythm.Bpm?.ToString("F1") ?? "--")</span>
+                        <span class="label">BPM</span>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">Loudness</div>
+                        <span class="value">@(report.Loudness.Lufs?.ToString("F1") ?? "inf")</span>
+                        <span class="label">LUFS</span>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">Key</div>
+                        <span class="value">@report.Rhythm.Key</span>
+                        <span class="label">Тональность</span>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">Duration</div>
+                        <span class="value">
+                            @if(report.Meta.Duration.HasValue) {
+                                @TimeSpan.FromSeconds(report.Meta.Duration.Value).ToString(@"mm\:ss")
+                            } else {
+                                <span>--:--</span>
+                            }
+                        </span>
+                        <span class="label">Длительность</span>
+                    </div>
+                </div>
+
+                <h2 class="section-title">Рекомендации</h2>
+                <div class="recommendations-list">
+                    @foreach (var rec in report.Recommendations)
+                    {
+                        <div class="rec-item @rec.Severity">
+                            <div class="rec-content">
+                                <div class="rec-header">
+                                    <span class="severity-bullet"></span>
+                                    <strong>@rec.Title</strong>
+                                </div>
+                                <p>@rec.Description</p>
+                                <div class="advice-box">
+                                    <span class="advice-tag">Совет</span> @rec.Advice
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
 </div>
 
 @code {
-    [Parameter]
-    public int jobId { get; set; }
+    [Parameter] public int jobId { get; set; }
 
-    public JobModel? job; 
+    private CancellationTokenSource _cts = new();
+    private JobStatusModel? status;
+    private bool _reportFetched = false;
+    private AnalysisReport? report;
 
-    protected override async Task OnInitializedAsync()
+    public class AnalysisReport
     {
-        @* job = await UploadService.GetJob(jobId); *@
+        [JsonPropertyName("meta")] public MetaData Meta { get; set; } = new();
+        [JsonPropertyName("loudness")] public LoudnessData Loudness { get; set; } = new();
+        [JsonPropertyName("rhythm")] public RhythmData Rhythm { get; set; } = new();
+        [JsonPropertyName("recommendations")] public List<Recommendation> Recommendations { get; set; } = new();
+    }
 
-        @* await JS.InvokeVoidAsync("console.log", "Задача:", job); *@
+    public class MetaData {
+        // Добавляем поддержку чтения чисел из строк и разных форматов
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
+        [JsonPropertyName("duration_sec")] 
+        public double? Duration { get; set; }
 
-        while (true)
+        [JsonPropertyName("sample_rate")] 
+        public int? SampleRate { get; set; }
+    }
+
+    public class LoudnessData {
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        [JsonPropertyName("lufs")] 
+        public double? Lufs { get; set; }
+
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        [JsonPropertyName("true_peak_db")] 
+        public double? TruePeak { get; set; }
+    }
+
+    public class RhythmData {
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        [JsonPropertyName("bpm")] 
+        public double? Bpm { get; set; }
+
+        [JsonPropertyName("estimated_key")] 
+        public string Key { get; set; } = "";
+    }
+
+    public class Recommendation {
+        [JsonPropertyName("title")] public string Title { get; set; } = "";
+        [JsonPropertyName("description")] public string Description { get; set; } = "";
+        [JsonPropertyName("advice")] public string Advice { get; set; } = "";
+        [JsonPropertyName("severity")] public string Severity { get; set; } = ""; 
+    }
+
+    // --- Lifecycle ---
+    protected override void OnInitialized()
+    {
+        _ = PollJobStatus();
+    }
+
+    // --- Logic ---
+    private async Task FetchAndLogReport()
+    {
+        try 
         {
-            var report = await ReportService.GetReportAsync(jobId);
-
-            if (report != null)
+            var response = await ReportService.GetReportAsync(jobId);
+            if (response != null && response.Metrics != null)
             {
-                await JS.InvokeVoidAsync("console.log", report.Metrics);
-                break;
-            }
+                // 1. Логируем в консоль для отладки
+                await JS.InvokeVoidAsync("console.log", "--- РЕЗУЛЬТАТ АНАЛИЗА ---", response.Metrics);
 
-            await Task.Delay(2000);
+                // 2. Десериализуем для UI
+                var json = System.Text.Json.JsonSerializer.Serialize(response.Metrics);
+                report = System.Text.Json.JsonSerializer.Deserialize<AnalysisReport>(json);
+                
+                StateHasChanged();
+            }
         }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", "Ошибка при получении отчета: " + ex.Message);
+        }
+    }
+
+    private string GetSeverityIcon(string severity) => severity switch
+    {
+        "high" => "🔴",
+        "warning" => "🟡",
+        _ => "🔵"
+    };
+
+    private async Task PollJobStatus()
+    {
+        try
+        {
+            await FetchUpdate();
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(0.1));
+
+            while (await timer.WaitForNextTickAsync(_cts.Token))
+            {
+                await FetchUpdate();
+
+                if (status != null && status.Status == "done")
+                {
+                    if (!_reportFetched)
+                    {
+                        await FetchAndLogReport();
+                        _reportFetched = true;
+                    }
+                    break;
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task FetchUpdate()
+    {
+        status = await UploadService.GetJobStatus(jobId);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
     }
 }
