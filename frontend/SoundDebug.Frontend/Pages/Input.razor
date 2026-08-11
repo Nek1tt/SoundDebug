@@ -4,6 +4,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject HttpClient Http
+@inject AuthService AuthService
 @inject UploadService UploadService
 
 <PageTitle>SoundDebug</PageTitle>
@@ -39,6 +40,12 @@
     private string error = "";
     private bool stemAnalysis;
     private bool isSubmitting;
+
+    protected override void OnInitialized()
+    {
+        if (!AuthService.IsAuthenticated)
+            NavigateToLogin();
+    }
 
     public class CreateJobResponse
     {
@@ -91,6 +98,11 @@
 
             Navigation.NavigateTo($"/job/{jobId}");
         }
+        catch (UnauthorizedAccessException)
+        {
+            await AuthService.LogoutAsync();
+            NavigateToLogin();
+        }
         catch (Exception ex)
         {
             error = ex.Message;
@@ -100,4 +112,7 @@
             isSubmitting = false;
         }
     }
+
+    private void NavigateToLogin() =>
+        Navigation.NavigateTo("/login?returnUrl=%2Finput", replace: true);
 }

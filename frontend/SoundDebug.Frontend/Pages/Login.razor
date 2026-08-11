@@ -1,6 +1,7 @@
 @page "/login"
 
 @using SoundDebug.Frontend
+@using Microsoft.AspNetCore.Components
 @inject NavigationManager Navigation
 @inject AuthService AuthService
 
@@ -28,8 +29,8 @@
 
         <div style="margin-top:10px;">
             <button class="change-button" @onclick="ToggleMode">
-                @(isRegisterMode 
-                    ? "Уже есть аккаунт? Войти" 
+                @(isRegisterMode
+                    ? "Уже есть аккаунт? Войти"
                     : "Нет аккаунта? Зарегистрироваться")
             </button>
         </div>
@@ -42,7 +43,10 @@
 </div>
 
 @code {
-    private string email = ""; 
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    private string email = "";
     private string password = "";
     private string error = "";
     private bool isRegisterMode = false;
@@ -78,7 +82,7 @@
 
             if (success)
             {
-                Navigation.NavigateTo("/profile");
+                Navigation.NavigateTo(GetSafeDestination());
             }
             else
             {
@@ -99,5 +103,17 @@
     {
         isRegisterMode = !isRegisterMode;
         error = "";
+    }
+
+    private string GetSafeDestination()
+    {
+        if (!string.IsNullOrWhiteSpace(ReturnUrl)
+            && ReturnUrl.StartsWith('/')
+            && !ReturnUrl.StartsWith("//"))
+        {
+            return ReturnUrl;
+        }
+
+        return "/profile";
     }
 }

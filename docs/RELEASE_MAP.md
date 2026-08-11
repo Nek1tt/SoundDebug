@@ -6,7 +6,7 @@ This file is the mandatory release ledger. Update **Current state**, **Delivered
 
 | Release | Target | State | Exit criterion |
 |---|---:|---|---|
-| `mvp-0.1.0` | 23 Aug 2026 | Implementation complete; host verification required | A new user can upload a track and receive a report through the public URL |
+| `mvp-0.1.0` | 23 Aug 2026 | Hotfix applied; host verification required | A new user can upload a track and receive a report through the public URL |
 | `beta-0.2.0` | Sep 2026 | Planned | 100 completed analyses, feedback captured, top failures fixed |
 | `beta-0.3.0` | Oct 2026 | Planned | GPU stem worker, better masking evidence, operational dashboard |
 | `1.0.0` | After beta evidence | Deferred | Stable quality thresholds, retention controls and documented SLA |
@@ -37,6 +37,27 @@ This file is the mandatory release ledger. Update **Current state**, **Delivered
 - Internal token for worker report writes.
 - One-command Compose deployment and repeatable scripts.
 - User feedback capture and deletion of saved analyses.
+
+## Hotfixes
+
+### 11 Aug 2026 — website upload / missing token
+
+- Redirect anonymous `/input` visits to login and return to upload afterwards.
+- Reject missing frontend tokens before sending a track.
+- Handle expired/invalid sessions without exposing the raw API error.
+- Attach JWT authorization to each request rather than mutable shared headers.
+
+### 11 Aug 2026 — pending jobs / worker startup
+
+- Fixed the DSP image so it includes `reference_worker` and `stem_worker`, both
+  of which are imported while Celery starts.
+- Assigned a stable `dsp-worker` Celery hostname for deterministic health checks.
+- Extended Windows/Linux smoke tests with a Celery ping instead of checking
+  only the HTTP services.
+- Made the API E2E fail with an actionable worker-log command when a job stays
+  `pending 0%` for 30 seconds.
+- Excluded `.env`, Git metadata, caches and generated frontend output from the
+  Docker build context.
 
 ## Launch blockers that require the deployment host
 

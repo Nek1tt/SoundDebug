@@ -14,6 +14,19 @@
 - Release setup, start, smoke-test and GitHub preparation scripts.
 - Per-report feedback and deletion of analyses from user history.
 
+### Fixed
+
+- Protected the upload page from anonymous access and return users to it after
+  login instead of sending an empty Bearer token and exposing `Missing token`.
+- Attach JWT authorization per frontend request and handle expired sessions with
+  a clear re-login flow.
+- Fixed DSP worker startup by copying the reference and stem worker packages
+  required by its imports into the Docker image.
+- Smoke tests now detect an unavailable Celery worker before E2E jobs remain
+  indefinitely at `pending 0%`.
+- Added a Docker build-context ignore list for secrets, Git metadata, caches and
+  generated frontend artefacts.
+
 ### Security
 
 - Removed committed `.env` and generated build output.

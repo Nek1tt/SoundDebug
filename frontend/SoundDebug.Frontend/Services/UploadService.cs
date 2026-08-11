@@ -21,9 +21,7 @@ public class UploadService
         IReadOnlyList<IBrowserFile> references,
         bool stemAnalysis)
     {
-        var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
-
-        _uploadHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var token = await GetRequiredTokenAsync();
 
         using var content = new MultipartFormDataContent();
 
@@ -45,10 +43,13 @@ public class UploadService
             content.Add(referenceContent, "references", reference.Name);
         }
 
-        var response = await _uploadHttp.PostAsync("jobs", content);
+        using var request = CreateAuthenticatedRequest(HttpMethod.Post, "jobs", token);
+        request.Content = content;
+        using var response = await _uploadHttp.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
         await _js.InvokeVoidAsync("console.log", body);
 
+        ThrowIfAuthenticationFailed(response);
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException($"Не удалось создать анализ: {body}");
 
@@ -57,10 +58,10 @@ public class UploadService
 
     public async Task<List<JobModel>?> GetJobs()
     {
-        var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
-        _uploadHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        var response = await _uploadHttp.GetAsync("jobs");
+        var token = await GetRequiredTokenAsync();
+        using var request = CreateAuthenticatedRequest(HttpMethod.Get, "jobs", token);
+        using var response = await _uploadHttp.SendAsync(request);
+        ThrowIfAuthenticationFailed(response);
         if (!response.IsSuccessStatusCode)
             return null;
 
@@ -73,10 +74,10 @@ public class UploadService
 
     public async Task<JobModel?> GetJob(int jobId)
     {
-        var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
-        _uploadHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        var response = await _uploadHttp.GetAsync($"jobs/{jobId}");
+        var token = await GetRequiredTokenAsync();
+        using var request = CreateAuthenticatedRequest(HttpMethod.Get, $"jobs/{jobId}", token);
+        using var response = await _uploadHttp.SendAsync(request);
+        ThrowIfAuthenticationFailed(response);
         if (!response.IsSuccessStatusCode)
             return null;
 
@@ -88,10 +89,10 @@ public class UploadService
 
     public async Task<JobStatusModel?> GetJobStatus(int jobId)
     {
-        var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
-        _uploadHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        var response = await _uploadHttp.GetAsync($"jobs/{jobId}/status");
+        var token = await GetRequiredTokenAsync();
+        using var request = CreateAuthenticatedRequest(HttpMethod.Get, $"jobs/{jobId}/status", token);
+        using var response = await _uploadHttp.SendAsync(request);
+        ThrowIfAuthenticationFailed(response);
         if (!response.IsSuccessStatusCode)
             return null;
 
@@ -101,9 +102,39 @@ public class UploadService
 
     public async Task<bool> DeleteJob(int jobId)
     {
-        var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
-        _uploadHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var response = await _uploadHttp.DeleteAsync($"jobs/{jobId}");
+        var token = await GetRequiredTokenAsync();
+        using var request = CreateAuthenticatedRequest(HttpMethod.Delete, $"jobs/{jobId}", token);
+        using var response = await _uploadHttp.SendAsync(request);
+        ThrowIfAuthenticationFailed(response);
         return response.IsSuccessStatusCode;
+    }
+
+    private async Task<string> GetRequiredTokenAsync()
+    {
+        var token = await _js.InvokeAsync<string?>("localStorage.getItem", "authToken");
+        if (string.IsNullOrWhiteSpace(token))
+            throw new UnauthorizedAccessException("Для запуска анализа необходимо войти в аккаунт.");
+
+        return token;
+    }
+
+    private static HttpRequestMessage CreateAuthenticatedRequest(
+        HttpMethod method,
+        string uri,
+        string token)
+    {
+        var request = new HttpRequestMessage(method, uri);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return request;
+    }
+
+    private static void ThrowIfAuthenticationFailed(HttpResponseMessage response)
+    {
+        if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized
+            or System.Net.HttpStatusCode.Forbidden)
+        {
+            throw new UnauthorizedAccessException(
+                "Сессия завершилась. Войдите в аккаунт повторно.");
+        }
     }
 }

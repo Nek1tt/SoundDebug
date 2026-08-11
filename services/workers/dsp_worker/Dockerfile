@@ -25,11 +25,11 @@ RUN pip install --no-cache-dir \
 COPY shared/ /app/shared/
 COPY data/ /app/data/
 
-# Сам воркер
-COPY services/workers/dsp_worker/ /app/services/workers/dsp_worker/
-COPY services/workers/__init__.py  /app/services/workers/__init__.py
-COPY services/__init__.py          /app/services/__init__.py
+# All worker packages are required at import time. The DSP task imports both
+# reference_worker and stem_worker even when stem analysis is disabled.
+COPY services/workers/ /app/services/workers/
+COPY services/__init__.py /app/services/__init__.py
 
 # Celery запускается напрямую
 CMD ["celery", "-A", "services.workers.dsp_worker.worker.celery_app", \
-     "worker", "--loglevel=info", "--concurrency=1", "-Q", "dsp"]
+     "worker", "--loglevel=info", "--concurrency=1", "--hostname=dsp-worker", "-Q", "dsp"]

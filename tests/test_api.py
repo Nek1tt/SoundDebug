@@ -59,9 +59,17 @@ def main() -> int:
     print("job:", job["id"])
 
     deadline = time.time() + 240
+    pending_since = time.time()
     while time.time() < deadline:
         state = require(requests.get(f"{BASE}/jobs/{job['id']}/status", headers=headers, timeout=10), 200)
         print(f"status: {state['status']} {state['progress']}%")
+        if state["status"] != "pending" or state["progress"] != 0:
+            pending_since = time.time()
+        elif time.time() - pending_since >= 30:
+            raise AssertionError(
+                "job stayed pending at 0% for 30 seconds; the DSP worker is not "
+                "consuming the 'dsp' queue. Run: docker compose logs --tail 200 dsp-worker"
+            )
         if state["status"] == "failed":
             raise AssertionError("worker marked the job as failed")
         if state["status"] == "done":
