@@ -1,0 +1,10 @@
+.git
+.github
+.env
+**/bin
+**/obj
+**/__pycache__
+**/*.py[cod]
+.venv
+var
+*.zip

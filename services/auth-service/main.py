@@ -13,7 +13,6 @@ from typing import Optional
 import bcrypt
 import jwt
 from fastapi import FastAPI, HTTPException, Depends, status, Header
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,15 +22,6 @@ from shared.db.session import get_db
 from shared.db.models import User
 
 app = FastAPI(title="Auth Service", version="1.0.0")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 class RegisterRequest(BaseModel):
     email: EmailStr

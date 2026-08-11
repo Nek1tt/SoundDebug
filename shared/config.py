@@ -30,3 +30,13 @@ JWT_EXPIRE_MINUTES: int = int(os.environ.get("JWT_EXPIRE_MINUTES", "10080"))
 AUTH_SERVICE_URL: str   = os.environ.get("AUTH_SERVICE_URL", "http://localhost:8001")
 UPLOAD_SERVICE_URL: str = os.environ.get("UPLOAD_SERVICE_URL", "http://localhost:8002")
 REPORT_SERVICE_URL: str = os.environ.get("REPORT_SERVICE_URL", "http://localhost:8003")
+
+# Internal worker-to-service authentication. This endpoint is never exposed by
+# the public gateway, but the token also prevents lateral writes in the network.
+INTERNAL_SERVICE_TOKEN: str = os.environ.get("INTERNAL_SERVICE_TOKEN", "dev-internal-token")
+
+# MVP resource limits
+MAX_UPLOAD_MB: int = int(os.environ.get("MAX_UPLOAD_MB", "50"))
+MAX_AUDIO_DURATION_SEC: int = int(os.environ.get("MAX_AUDIO_DURATION_SEC", "900"))
+STEM_ANALYSIS_DEFAULT: bool = os.environ.get("STEM_ANALYSIS_DEFAULT", "false").lower() == "true"
+DEMUCS_MODEL: str = os.environ.get("DEMUCS_MODEL", "htdemucs")

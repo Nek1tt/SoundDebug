@@ -28,6 +28,7 @@ class Job(Base):
 
     user   = relationship("User", back_populates="jobs")
     report = relationship("Report", back_populates="job", uselist=False, cascade="all, delete")
+    feedback = relationship("Feedback", back_populates="job", uselist=False, cascade="all, delete")
 
 
 class Report(Base):
@@ -42,6 +43,16 @@ class Report(Base):
     metrics = Column(JSON, nullable=False, default=dict)
 
     job = relationship("Job", back_populates="report")
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    job_id = Column(Integer, ForeignKey("job.id", ondelete="CASCADE"), primary_key=True)
+    rating = Column(Integer, nullable=False)
+    comment = Column(String(1000), nullable=False, default="")
+
+    job = relationship("Job", back_populates="feedback")
 
 
 class JobStatusCache(Base):

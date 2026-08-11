@@ -20,9 +20,7 @@ Celery-воркер DSP-анализа.
 
 from __future__ import annotations
 
-import asyncio
 import logging
-import os
 import tempfile
 from pathlib import Path
 
@@ -37,11 +35,15 @@ from shared.config import (
     MINIO_SECRET_KEY,
     MINIO_BUCKET,
     REPORT_SERVICE_URL,
+    INTERNAL_SERVICE_TOKEN,
+    DEMUCS_MODEL,
 )
-from shared.storage.s3_client import get_minio_client
+from shared.storage.s3_client import delete_file, get_minio_client
 
 from .analyzer import analyze
 from .recommendations import generate_recommendations
+from services.workers.reference_worker.curve_matcher import compare_to_genre, compare_to_references
+from services.workers.stem_worker.demucs_runner import separate_and_analyze
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +95,12 @@ def _post_report(job_id: int, metrics: dict) -> bool:
     """
     url = f"{REPORT_SERVICE_URL}/reports/{job_id}"
     try:
-        resp = httpx.post(url, json={"metrics": metrics}, timeout=10.0)
+        resp = httpx.post(
+            url,
+            json={"metrics": metrics},
+            headers={"X-Service-Token": INTERNAL_SERVICE_TOKEN},
+            timeout=30.0,
+        )
         if resp.status_code in (200, 201):
             return True
         logger.error(f"[DSP] report-service returned {resp.status_code}: {resp.text}")
@@ -118,7 +125,14 @@ def _download_from_minio(s3_key: str, dest_path: str) -> None:
     max_retries=3,
     default_retry_delay=10,
 )
-def analyze_track(self, job_id: int, s3_key: str, genre: str) -> dict:
+def analyze_track(
+    self,
+    job_id: int,
+    s3_key: str,
+    genre: str,
+    reference_keys: list[str] | None = None,
+    stem_analysis: bool = False,
+) -> dict:
     """
     Основная задача DSP-анализа.
 
@@ -130,6 +144,9 @@ def analyze_track(self, job_id: int, s3_key: str, genre: str) -> dict:
     Returns:
         Словарь результата (также пишется в report-service)
     """
+    reference_keys = reference_keys or []
+    cleanup_keys = [s3_key, *reference_keys]
+    cleanup_uploads = False
     logger.info(f"[DSP] Task started: job_id={job_id}, s3_key={s3_key}, genre={genre}")
 
     try:
@@ -138,11 +155,8 @@ def analyze_track(self, job_id: int, s3_key: str, genre: str) -> dict:
         _set_progress(job_id, 5)
 
         # ── Шаг 2: скачиваем файл из MinIO ────────────────────────────────
-        suffix = Path(s3_key).suffix or ".mp3"
-        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-            tmp_path = tmp.name
-
-        try:
+        with tempfile.TemporaryDirectory(prefix=f"sounddebug-{job_id}-") as temp_dir:
+            tmp_path = str(Path(temp_dir) / f"target{Path(s3_key).suffix or '.mp3'}")
             _download_from_minio(s3_key, tmp_path)
             _set_progress(job_id, 20)
             logger.info(f"[DSP] Downloaded: {s3_key} → {tmp_path}")
@@ -150,25 +164,46 @@ def analyze_track(self, job_id: int, s3_key: str, genre: str) -> dict:
             # ── Шаг 3: DSP-анализ ──────────────────────────────────────────
             _set_progress(job_id, 30)
             dsp_metrics = analyze(tmp_path)
-            _set_progress(job_id, 75)
+            _set_progress(job_id, 55)
             logger.info(f"[DSP] Analysis done: job_id={job_id}")
 
-        finally:
-            # Всегда удаляем временный файл
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+            reference_metrics = []
+            for index, reference_key in enumerate(reference_keys):
+                ref_path = str(Path(temp_dir) / f"reference-{index}{Path(reference_key).suffix or '.mp3'}")
+                _download_from_minio(reference_key, ref_path)
+                reference_metrics.append(analyze(ref_path))
+            reference_comparison = (
+                compare_to_references(dsp_metrics, reference_metrics)
+                or compare_to_genre(dsp_metrics, genre)
+            )
+            _set_progress(job_id, 70)
+
+            stem_result = {"enabled": False, "reason": "not requested"}
+            if stem_analysis:
+                _set_status(job_id, "stem-analysis")
+                stem_result = separate_and_analyze(
+                    tmp_path,
+                    Path(temp_dir) / "demucs",
+                    model=DEMUCS_MODEL,
+                )
+            _set_progress(job_id, 88)
 
         # ── Шаг 4: генерируем рекомендации ────────────────────────────────
         recommendations = generate_recommendations(dsp_metrics, genre)
-        _set_progress(job_id, 90)
+        _set_progress(job_id, 92)
 
         # ── Шаг 5: собираем финальный отчёт ───────────────────────────────
         full_report = {
             **dsp_metrics,
             "genre": genre,
+            "reference_comparison": reference_comparison,
+            "stem_analysis": stem_result,
             "recommendations": recommendations,
+            "report_version": "mvp-1",
+            "artistic_intent_warning": (
+                "SoundDebug detects measurable deviations, not artistic mistakes. "
+                "Check every recommendation against your intent and listening context."
+            ),
         }
 
         # ── Шаг 6: отправляем в report-service ────────────────────────────
@@ -181,10 +216,23 @@ def analyze_track(self, job_id: int, s3_key: str, genre: str) -> dict:
         _set_progress(job_id, 100)
         logger.info(f"[DSP] Completed: job_id={job_id}")
 
+        cleanup_uploads = True
         return full_report
 
     except Exception as exc:
-        _set_status(job_id, "failed")
         logger.exception(f"[DSP] Task failed: job_id={job_id}: {exc}")
+        exhausted = self.request.retries >= self.max_retries
+        _set_status(job_id, "failed" if exhausted else "retrying")
+        cleanup_uploads = exhausted
         # Retry с экспоненциальной задержкой
         raise self.retry(exc=exc, countdown=2 ** self.request.retries * 10)
+
+    finally:
+        # MVP privacy rule: source audio and references are transient. Reports
+        # keep only derived metrics. Cleanup failure must not erase a valid report.
+        if cleanup_uploads:
+            for object_key in cleanup_keys:
+                try:
+                    delete_file(object_key)
+                except Exception as cleanup_exc:
+                    logger.warning("[DSP] Could not delete %s: %s", object_key, cleanup_exc)

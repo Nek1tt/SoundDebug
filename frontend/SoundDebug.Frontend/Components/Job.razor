@@ -9,9 +9,14 @@
         <label for="status">Статус</label>
         <h1 id="status">@Data.status</h1>
     </div>
+    @if (Data.status is "done" or "failed")
+    {
+        <button class="delete-button" @onclick="() => DeleteRequested.InvokeAsync(Data.id)">Удалить</button>
+    }
 </div>
 
 
 @code {
     [Parameter] public JobModel Data { get; set; } = default!;
+    [Parameter] public EventCallback<int> DeleteRequested { get; set; }
 }

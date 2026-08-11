@@ -51,6 +51,9 @@ import librosa
 import numpy as np
 import pyloudnorm as pyln
 import soundfile as sf
+from scipy.signal import resample_poly
+
+from shared.config import MAX_AUDIO_DURATION_SEC
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +80,19 @@ def _to_db(amplitude: float | np.floating, eps: float = 1e-9) -> float:
     return float(20 * np.log10(float(amplitude) + eps))
 
 
+def _oversampled_peak(channel: np.ndarray, sr: int, factor: int = 4) -> float:
+    """Bound memory while retaining a small overlap around chunk boundaries."""
+    chunk_size = sr * 10
+    overlap = 64
+    peak = 0.0
+    for start in range(0, len(channel), chunk_size):
+        left = max(0, start - overlap)
+        right = min(len(channel), start + chunk_size + overlap)
+        oversampled = resample_poly(channel[left:right], factor, 1)
+        peak = max(peak, float(np.max(np.abs(oversampled))))
+    return peak
+
+
 def _load_audio(path: str | Path) -> tuple[np.ndarray, np.ndarray | None, int, int]:
     """
     Загружает аудио.
@@ -84,7 +100,13 @@ def _load_audio(path: str | Path) -> tuple[np.ndarray, np.ndarray | None, int, i
     y_mono  — float32 моно, нормированный в [-1, 1]
     y_stereo — (2, N) если исходный файл стерео, иначе None
     """
-    data, sr = sf.read(str(path), dtype="float32", always_2d=True)
+    try:
+        data, sr = sf.read(str(path), dtype="float32", always_2d=True)
+    except Exception:
+        # Formats such as M4A may need ffmpeg/audioread rather than libsndfile.
+        decoded, sr = librosa.load(str(path), sr=None, mono=False)
+        data = decoded[:, np.newaxis] if decoded.ndim == 1 else decoded.T
+        data = data.astype(np.float32)
     num_channels = data.shape[1]
 
     # Нормировка, чтобы не было тихих треков со сдвинутым DC
@@ -121,7 +143,8 @@ def _loudness_metrics(y_mono: np.ndarray, y_stereo: np.ndarray | None, sr: int) 
         # Трек слишком короткий — fallback
         lufs = float("nan")
 
-    # Short-term LUFS (каждые ~3 секунды)
+    # Short-term LUFS (non-overlapping 3 second windows). The time series is
+    # deliberately compact so it can be rendered directly by the MVP UI.
     block = sr * 3
     short_term_list: list[float] = []
     for i in range(0, len(y_mono) - block, block):
@@ -133,7 +156,11 @@ def _loudness_metrics(y_mono: np.ndarray, y_stereo: np.ndarray | None, sr: int) 
         except Exception:
             pass
 
-    true_peak = float(np.max(np.abs(y_mono)))
+    # 4x oversampling catches inter-sample peaks. This is a practical BS.1770
+    # MVP detector and, importantly, evaluates channels independently instead
+    # of hiding peaks in an L/R downmix.
+    channels = y_stereo if y_stereo is not None else y_mono[np.newaxis, :]
+    true_peak = max(_oversampled_peak(channel, sr) for channel in channels)
     true_peak_db = _to_db(true_peak)
 
     rms = float(np.sqrt(np.mean(y_mono**2)))
@@ -147,9 +174,16 @@ def _loudness_metrics(y_mono: np.ndarray, y_stereo: np.ndarray | None, sr: int) 
 
     headroom_db = -true_peak_db
 
-    clip_mask = np.abs(y_mono) >= CLIP_THRESHOLD
+    clip_mask = np.any(np.abs(channels) >= CLIP_THRESHOLD, axis=0)
     clipping_count = int(np.sum(clip_mask))
     clipping_percent = round(100.0 * clipping_count / len(y_mono), 4)
+
+    # EBU-style distribution indicator. Full LRA gating can be added after the
+    # beta; this percentile estimate is kept under an explicit method field.
+    loudness_range = (
+        float(np.percentile(short_term_list, 95) - np.percentile(short_term_list, 10))
+        if len(short_term_list) >= 2 else None
+    )
 
     return {
         "lufs": round(lufs, 2) if np.isfinite(lufs) else None,
@@ -158,6 +192,8 @@ def _loudness_metrics(y_mono: np.ndarray, y_stereo: np.ndarray | None, sr: int) 
         "rms_db": round(rms_db, 2),
         "crest_factor_db": round(crest_factor_db, 2),
         "dynamic_range_db": round(dynamic_range_db, 2),
+        "loudness_range_lu": round(loudness_range, 2) if loudness_range is not None else None,
+        "loudness_range_method": "short-term-p95-p10",
         "headroom_db": round(headroom_db, 2),
         "clipping_count": clipping_count,
         "clipping_percent": clipping_percent,
@@ -287,6 +323,10 @@ def analyze(path: str | Path) -> dict[str, Any]:
         raise RuntimeError(f"Failed to load audio: {exc}") from exc
 
     duration_sec = round(len(y_mono) / sr, 2)
+    if duration_sec > MAX_AUDIO_DURATION_SEC:
+        raise RuntimeError(
+            f"Audio is {duration_sec:.1f}s; MVP limit is {MAX_AUDIO_DURATION_SEC}s"
+        )
 
     try:
         loudness = _loudness_metrics(y_mono, y_stereo, sr)

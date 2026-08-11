@@ -1,0 +1,6 @@
+{
+  "genre": "lo-fi",
+  "version": "mvp-2026-08",
+  "relative_band_db": {"sub_bass": -4.0, "bass": 1.5, "low_mid": 2.0, "mid": 1.0, "upper_mid": -1.0, "presence": -2.5, "air": -5.0},
+  "disclaimer": "Exploratory fallback profile; prefer user references and validate by ear."
+}

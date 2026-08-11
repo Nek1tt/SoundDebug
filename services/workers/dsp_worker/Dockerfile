@@ -16,10 +16,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY services/workers/dsp_worker/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+        torch==2.3.1+cpu torchaudio==2.3.1+cpu \
+        --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Shared-пакет (config, db, storage)
 COPY shared/ /app/shared/
+COPY data/ /app/data/
 
 # Сам воркер
 COPY services/workers/dsp_worker/ /app/services/workers/dsp_worker/
@@ -28,4 +32,4 @@ COPY services/__init__.py          /app/services/__init__.py
 
 # Celery запускается напрямую
 CMD ["celery", "-A", "services.workers.dsp_worker.worker.celery_app", \
-     "worker", "--loglevel=info", "--concurrency=2", "-Q", "dsp"]
+     "worker", "--loglevel=info", "--concurrency=1", "-Q", "dsp"]

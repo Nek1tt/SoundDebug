@@ -15,7 +15,11 @@ public class UploadService
         _js = js;
     }
 
-    public async Task<string?> CreateJob(string genre, IBrowserFile file)
+    public async Task<string> CreateJob(
+        string genre,
+        IBrowserFile file,
+        IReadOnlyList<IBrowserFile> references,
+        bool stemAnalysis)
     {
         var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
 
@@ -24,18 +28,31 @@ public class UploadService
         using var content = new MultipartFormDataContent();
 
         content.Add(new StringContent(genre), "genre");
+        content.Add(new StringContent(stemAnalysis.ToString().ToLowerInvariant()), "stem_analysis");
 
         var stream = file.OpenReadStream(50 * 1024 * 1024);
-        content.Add(new StreamContent(stream), "file", file.Name);
+        var trackContent = new StreamContent(stream);
+        if (!string.IsNullOrWhiteSpace(file.ContentType))
+            trackContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+        content.Add(trackContent, "file", file.Name);
+
+        foreach (var reference in references.Take(3))
+        {
+            var referenceStream = reference.OpenReadStream(50 * 1024 * 1024);
+            var referenceContent = new StreamContent(referenceStream);
+            if (!string.IsNullOrWhiteSpace(reference.ContentType))
+                referenceContent.Headers.ContentType = new MediaTypeHeaderValue(reference.ContentType);
+            content.Add(referenceContent, "references", reference.Name);
+        }
 
         var response = await _uploadHttp.PostAsync("jobs", content);
         var body = await response.Content.ReadAsStringAsync();
         await _js.InvokeVoidAsync("console.log", body);
 
         if (!response.IsSuccessStatusCode)
-            return null;
+            throw new InvalidOperationException($"Не удалось создать анализ: {body}");
 
-        return await response.Content.ReadAsStringAsync();
+        return body;
     }
 
     public async Task<List<JobModel>?> GetJobs()
@@ -80,5 +97,13 @@ public class UploadService
 
         var json = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<JobStatusModel>(json);
+    }
+
+    public async Task<bool> DeleteJob(int jobId)
+    {
+        var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
+        _uploadHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _uploadHttp.DeleteAsync($"jobs/{jobId}");
+        return response.IsSuccessStatusCode;
     }
 }

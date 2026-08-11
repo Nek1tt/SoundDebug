@@ -17,7 +17,7 @@ app = FastAPI(title="API Gateway", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5080", "https://localhost:7011"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,6 +88,11 @@ async def proxy_jobs(path: str, request: Request):
     return await _proxy(request, f"{UPLOAD_SERVICE_URL}/jobs/{path}")
 
 
-@app.api_route("/reports/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+@app.post("/reports/{job_id}/feedback")
+async def proxy_feedback(job_id: int, request: Request):
+    return await _proxy(request, f"{REPORT_SERVICE_URL}/reports/{job_id}/feedback")
+
+
+@app.api_route("/reports/{path:path}", methods=["GET", "DELETE"])
 async def proxy_reports(path: str, request: Request):
     return await _proxy(request, f"{REPORT_SERVICE_URL}/reports/{path}")

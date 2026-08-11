@@ -28,7 +28,9 @@ from typing import Any
 GENRE_LUFS_TARGET: dict[str, float] = {
     "lo-fi":       -16.0,
     "modern-pop":  -14.0,
+    "hip-hop":     -12.0,
     "techno":      -9.0,   # Techno традиционно громче
+    "electronic":  -11.0,
 }
 GENRE_LUFS_TOLERANCE = 3.0  # ±3 LUFS — нормальное отклонение
 
@@ -121,7 +123,7 @@ def _check_true_peak(loudness: dict) -> list[dict]:
             "Поставьте True Peak Limiter на мастер-шине с потолком -1.0 dBTP. "
             "Проверьте результат в любом EBU R128-анализаторе (Youlean, SPAN).",
             value=tp,
-            unit="dBFS",
+            unit="dBTP",
             target=TRUE_PEAK_LIMIT,
         ))
     elif tp > -0.3:
@@ -134,7 +136,7 @@ def _check_true_peak(loudness: dict) -> list[dict]:
             "После мастеринга и конвертации сигнал может перегрузиться.",
             "Рекомендуется держать True Peak не выше -1.0 dBFS перед сдачей на стриминг.",
             value=tp,
-            unit="dBFS",
+            unit="dBTP",
         ))
     return recs
 

@@ -37,3 +37,11 @@
 
     width: 25%;
 }
+
+.delete-button {
+    color: #ff9b9b;
+    border: 1px solid rgba(255,155,155,.4);
+    background: transparent;
+    border-radius: 8px;
+    padding: 8px 12px;
+}

@@ -1,0 +1,6 @@
+{
+  "genre": "modern-pop",
+  "version": "mvp-2026-08",
+  "relative_band_db": {"sub_bass": -2.0, "bass": 1.0, "low_mid": -0.5, "mid": 0.0, "upper_mid": 1.5, "presence": 1.0, "air": -1.0},
+  "disclaimer": "Exploratory fallback profile; prefer user references and validate by ear."
+}

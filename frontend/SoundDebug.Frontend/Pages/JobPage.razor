@@ -2,26 +2,25 @@
 @using SoundDebug.Frontend.Components
 @using SoundDebug.Frontend.Models
 @using System.Text.Json.Serialization
-@inject IJSRuntime JS
 @inject UploadService UploadService
 @inject ReportService ReportService
-
 @implements IDisposable
 
 <div class="main-layout">
     <Navbar />
-    <div class="bg">
-        <div class="blob"></div>
-        <div class="blob"></div>
-    </div>
-
     <div class="content-container">
-        @if (report == null)
+        @if (!string.IsNullOrWhiteSpace(error))
         {
-            <!-- СОСТОЯНИЕ ЗАГРУЗКИ -->
+            <div class="error-panel">
+                <h2>Анализ не завершён</h2>
+                <p>@error</p>
+                <a href="/input">Запустить новый анализ</a>
+            </div>
+        }
+        else if (report == null)
+        {
             <div class="loader-section">
                 <h2 class="job-id">Задача #@jobId</h2>
-                
                 <div class="progress-wrapper">
                     <svg class="progress-ring" width="200" height="200">
                         <circle class="progress-ring__background" stroke="rgba(255,255,255,0.1)" stroke-width="8" fill="transparent" r="90" cx="100" cy="100" />
@@ -29,67 +28,94 @@
                     </svg>
                     <div class="progress-text">
                         <span class="percent">@(status?.Progress ?? 0)%</span>
-                        <span class="status-label">@status?.Status</span>
+                        <span class="status-label">@StatusLabel(status?.Status)</span>
                     </div>
                 </div>
-                
-                <p class="loading-hint">Анализируем частоты и динамику вашего трека...</p>
+                <p class="loading-hint">DSP-анализ обычно занимает до минуты. Demucs может занять несколько минут.</p>
             </div>
         }
         else
         {
-            <!-- СОСТОЯНИЕ ГОТОВНОСТИ -->
             <div class="report-container animate-fade-in">
-                <div class="report-header">
-                    <h1>Результаты отчета</h1>
-                </div>
+                <div class="report-header"><h1>Отчёт SoundDebug</h1></div>
+                <p class="intent-warning">@report.ArtisticIntentWarning</p>
+                <p class="education-links">
+                    Методика: <a href="https://www.itu.int/rec/R-REC-BS.1770" target="_blank">ITU-R BS.1770</a>
+                    · <a href="https://tech.ebu.ch/publications/r128" target="_blank">EBU R 128</a>
+                </p>
 
                 <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-icon">Tempo</div>
-                        <span class="value">@(report.Rhythm.Bpm?.ToString("F1") ?? "--")</span>
-                        <span class="label">BPM</span>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-icon">Loudness</div>
-                        <span class="value">@(report.Loudness.Lufs?.ToString("F1") ?? "inf")</span>
-                        <span class="label">LUFS</span>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-icon">Key</div>
-                        <span class="value">@report.Rhythm.Key</span>
-                        <span class="label">Тональность</span>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-icon">Duration</div>
-                        <span class="value">
-                            @if(report.Meta.Duration.HasValue) {
-                                @TimeSpan.FromSeconds(report.Meta.Duration.Value).ToString(@"mm\:ss")
-                            } else {
-                                <span>--:--</span>
-                            }
-                        </span>
-                        <span class="label">Длительность</span>
-                    </div>
+                    <Metric Label="BPM" Value="@(report.Rhythm.Bpm?.ToString("F1") ?? "—")" />
+                    <Metric Label="LUFS" Value="@(report.Loudness.Lufs?.ToString("F1") ?? "—")" />
+                    <Metric Label="True Peak, dBTP" Value="@(report.Loudness.TruePeak?.ToString("F1") ?? "—")" />
+                    <Metric Label="LRA, LU" Value="@(report.Loudness.LoudnessRange?.ToString("F1") ?? "—")" />
+                    <Metric Label="Тональность" Value="@($"{report.Rhythm.Key} {report.Rhythm.Mode}")" />
+                    <Metric Label="Stereo width" Value="@(report.Stereo.Width?.ToString("F2") ?? "—")" />
+                    <Metric Label="Phase correlation" Value="@(report.Stereo.Phase?.ToString("F2") ?? "—")" />
+                    <Metric Label="Длительность" Value="@(report.Meta.Duration.HasValue ? TimeSpan.FromSeconds(report.Meta.Duration.Value).ToString(@"mm\:ss") : "—")" />
                 </div>
+
+                <h2 class="section-title">Тональный баланс</h2>
+                <div class="data-table">
+                    @foreach (var band in report.Tonal.BandEnergy)
+                    {
+                        <div><span>@BandLabel(band.Key)</span><strong>@band.Value.ToString("F1") dB</strong></div>
+                    }
+                </div>
+
+                @if (report.ReferenceComparison is not null)
+                {
+                    <h2 class="section-title">Сравнение с референсами</h2>
+                    <p>@ComparisonLabel(report.ReferenceComparison) Плюс означает, что диапазона в вашем треке больше.</p>
+                    <div class="data-table">
+                        @foreach (var band in report.ReferenceComparison.TonalDeltaDb)
+                        {
+                            <div><span>@BandLabel(band.Key)</span><strong>@(band.Value >= 0 ? "+" : "")@band.Value.ToString("F1") dB</strong></div>
+                        }
+                    </div>
+                }
+
+                @if (report.StemAnalysis.Enabled)
+                {
+                    <h2 class="section-title">Demucs Stem Analysis</h2>
+                    <div class="data-table">
+                        @foreach (var stem in report.StemAnalysis.Stems)
+                        {
+                            <div><span>@stem.Key</span><strong>@(stem.Value.Lufs?.ToString("F1") ?? "—") LUFS · @(stem.Value.TruePeak?.ToString("F1") ?? "—") dBTP</strong></div>
+                        }
+                    </div>
+                    <p class="disclaimer">@report.StemAnalysis.Disclaimer</p>
+                }
 
                 <h2 class="section-title">Рекомендации</h2>
                 <div class="recommendations-list">
+                    @if (report.Recommendations.Count == 0)
+                    {
+                        <div class="rec-item info">Критических технических отклонений не найдено.</div>
+                    }
                     @foreach (var rec in report.Recommendations)
                     {
                         <div class="rec-item @rec.Severity">
-                            <div class="rec-content">
-                                <div class="rec-header">
-                                    <span class="severity-bullet"></span>
-                                    <strong>@rec.Title</strong>
-                                </div>
-                                <p>@rec.Description</p>
-                                <div class="advice-box">
-                                    <span class="advice-tag">Совет</span> @rec.Advice
-                                </div>
-                            </div>
+                            <strong>@rec.Title</strong>
+                            <p>@rec.Description</p>
+                            <div class="advice-box"><span class="advice-tag">Проверить в DAW</span> @rec.Advice</div>
                         </div>
                     }
+                </div>
+
+                <div class="feedback-panel">
+                    <h2>Отчёт был полезен?</h2>
+                    <div class="rating-buttons">
+                        @for (var score = 1; score <= 5; score++)
+                        {
+                            var value = score;
+                            <button class="@(feedbackRating == value ? "selected" : "")" @onclick="() => feedbackRating = value">@value</button>
+                        }
+                    </div>
+                    <textarea @bind="feedbackComment" maxlength="1000" placeholder="Что оказалось полезным или нет?"></textarea>
+                    <button class="feedback-submit" @onclick="SaveFeedback" disabled="@(feedbackRating == 0 || feedbackSaved)">
+                        @(feedbackSaved ? "Спасибо, сохранено" : "Отправить отзыв")
+                    </button>
                 </div>
             </div>
         }
@@ -99,126 +125,139 @@
 @code {
     [Parameter] public int jobId { get; set; }
 
-    private CancellationTokenSource _cts = new();
+    private readonly CancellationTokenSource _cts = new();
     private JobStatusModel? status;
-    private bool _reportFetched = false;
     private AnalysisReport? report;
+    private string? error;
+    private int feedbackRating;
+    private string feedbackComment = "";
+    private bool feedbackSaved;
 
-    public class AnalysisReport
-    {
-        [JsonPropertyName("meta")] public MetaData Meta { get; set; } = new();
-        [JsonPropertyName("loudness")] public LoudnessData Loudness { get; set; } = new();
-        [JsonPropertyName("rhythm")] public RhythmData Rhythm { get; set; } = new();
-        [JsonPropertyName("recommendations")] public List<Recommendation> Recommendations { get; set; } = new();
-    }
-
-    public class MetaData {
-        // Добавляем поддержку чтения чисел из строк и разных форматов
-        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
-        [JsonPropertyName("duration_sec")] 
-        public double? Duration { get; set; }
-
-        [JsonPropertyName("sample_rate")] 
-        public int? SampleRate { get; set; }
-    }
-
-    public class LoudnessData {
-        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
-        [JsonPropertyName("lufs")] 
-        public double? Lufs { get; set; }
-
-        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
-        [JsonPropertyName("true_peak_db")] 
-        public double? TruePeak { get; set; }
-    }
-
-    public class RhythmData {
-        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
-        [JsonPropertyName("bpm")] 
-        public double? Bpm { get; set; }
-
-        [JsonPropertyName("estimated_key")] 
-        public string Key { get; set; } = "";
-    }
-
-    public class Recommendation {
-        [JsonPropertyName("title")] public string Title { get; set; } = "";
-        [JsonPropertyName("description")] public string Description { get; set; } = "";
-        [JsonPropertyName("advice")] public string Advice { get; set; } = "";
-        [JsonPropertyName("severity")] public string Severity { get; set; } = ""; 
-    }
-
-    // --- Lifecycle ---
-    protected override void OnInitialized()
-    {
-        _ = PollJobStatus();
-    }
-
-    // --- Logic ---
-    private async Task FetchAndLogReport()
-    {
-        try 
-        {
-            var response = await ReportService.GetReportAsync(jobId);
-            if (response != null && response.Metrics != null)
-            {
-                // 1. Логируем в консоль для отладки
-                await JS.InvokeVoidAsync("console.log", "--- РЕЗУЛЬТАТ АНАЛИЗА ---", response.Metrics);
-
-                // 2. Десериализуем для UI
-                var json = System.Text.Json.JsonSerializer.Serialize(response.Metrics);
-                report = System.Text.Json.JsonSerializer.Deserialize<AnalysisReport>(json);
-                
-                StateHasChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("console.error", "Ошибка при получении отчета: " + ex.Message);
-        }
-    }
-
-    private string GetSeverityIcon(string severity) => severity switch
-    {
-        "high" => "🔴",
-        "warning" => "🟡",
-        _ => "🔵"
-    };
+    protected override void OnInitialized() => _ = PollJobStatus();
 
     private async Task PollJobStatus()
     {
         try
         {
-            await FetchUpdate();
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(0.1));
-
-            while (await timer.WaitForNextTickAsync(_cts.Token))
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+            while (!_cts.IsCancellationRequested)
             {
-                await FetchUpdate();
-
-                if (status != null && status.Status == "done")
+                status = await UploadService.GetJobStatus(jobId);
+                if (status is null)
                 {
-                    if (!_reportFetched)
+                    error = "Задача не найдена или сессия завершилась.";
+                    break;
+                }
+                if (status.Status == "failed")
+                {
+                    error = "Обработка файла завершилась ошибкой. Проверьте формат и попробуйте снова.";
+                    break;
+                }
+                if (status.Status == "done")
+                {
+                    var response = await ReportService.GetReportAsync(jobId);
+                    if (response is not null)
                     {
-                        await FetchAndLogReport();
-                        _reportFetched = true;
+                        var json = System.Text.Json.JsonSerializer.Serialize(response.Metrics);
+                        report = System.Text.Json.JsonSerializer.Deserialize<AnalysisReport>(json);
                     }
                     break;
                 }
+                await InvokeAsync(StateHasChanged);
+                await timer.WaitForNextTickAsync(_cts.Token);
             }
+            await InvokeAsync(StateHasChanged);
         }
         catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            error = $"Не удалось получить состояние анализа: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
-    private async Task FetchUpdate()
+    private static string StatusLabel(string? value) => value switch
     {
-        status = await UploadService.GetJobStatus(jobId);
-        StateHasChanged();
+        "pending" => "В очереди",
+        "processing" => "DSP-анализ",
+        "stem-analysis" => "Demucs",
+        "retrying" => "Повтор обработки",
+        _ => value ?? "Запуск"
+    };
+
+    private static string BandLabel(string value) => value.Replace("_", " ");
+
+    private async Task SaveFeedback()
+    {
+        if (feedbackRating == 0) return;
+        feedbackSaved = await ReportService.SaveFeedbackAsync(jobId, feedbackRating, feedbackComment);
     }
+
+    private static string ComparisonLabel(ReferenceComparison comparison) =>
+        comparison.Source == "references"
+            ? $"Медиана по {comparison.ReferenceCount} референсам."
+            : "Сравнение с предварительным жанровым профилем (fallback).";
 
     public void Dispose()
     {
         _cts.Cancel();
         _cts.Dispose();
+    }
+
+    public sealed class AnalysisReport
+    {
+        [JsonPropertyName("meta")] public MetaData Meta { get; set; } = new();
+        [JsonPropertyName("loudness")] public LoudnessData Loudness { get; set; } = new();
+        [JsonPropertyName("tonal")] public TonalData Tonal { get; set; } = new();
+        [JsonPropertyName("stereo")] public StereoData Stereo { get; set; } = new();
+        [JsonPropertyName("rhythm")] public RhythmData Rhythm { get; set; } = new();
+        [JsonPropertyName("reference_comparison")] public ReferenceComparison? ReferenceComparison { get; set; }
+        [JsonPropertyName("stem_analysis")] public StemAnalysisData StemAnalysis { get; set; } = new();
+        [JsonPropertyName("recommendations")] public List<Recommendation> Recommendations { get; set; } = new();
+        [JsonPropertyName("artistic_intent_warning")] public string ArtisticIntentWarning { get; set; } = "Метрики не заменяют слуховую оценку.";
+    }
+
+    public sealed class MetaData { [JsonPropertyName("duration_sec")] public double? Duration { get; set; } }
+    public sealed class LoudnessData
+    {
+        [JsonPropertyName("lufs")] public double? Lufs { get; set; }
+        [JsonPropertyName("true_peak_db")] public double? TruePeak { get; set; }
+        [JsonPropertyName("loudness_range_lu")] public double? LoudnessRange { get; set; }
+    }
+    public sealed class TonalData { [JsonPropertyName("band_energy_db")] public Dictionary<string, double> BandEnergy { get; set; } = new(); }
+    public sealed class StereoData
+    {
+        [JsonPropertyName("stereo_width")] public double? Width { get; set; }
+        [JsonPropertyName("phase_correlation")] public double? Phase { get; set; }
+    }
+    public sealed class RhythmData
+    {
+        [JsonPropertyName("bpm")] public double? Bpm { get; set; }
+        [JsonPropertyName("estimated_key")] public string Key { get; set; } = "—";
+        [JsonPropertyName("estimated_mode")] public string Mode { get; set; } = "";
+    }
+    public sealed class ReferenceComparison
+    {
+        [JsonPropertyName("source")] public string Source { get; set; } = "genre-profile";
+        [JsonPropertyName("reference_count")] public int ReferenceCount { get; set; }
+        [JsonPropertyName("tonal_delta_db")] public Dictionary<string, double> TonalDeltaDb { get; set; } = new();
+    }
+    public sealed class StemAnalysisData
+    {
+        [JsonPropertyName("enabled")] public bool Enabled { get; set; }
+        [JsonPropertyName("stems")] public Dictionary<string, StemMetrics> Stems { get; set; } = new();
+        [JsonPropertyName("disclaimer")] public string Disclaimer { get; set; } = "";
+    }
+    public sealed class StemMetrics
+    {
+        [JsonPropertyName("lufs")] public double? Lufs { get; set; }
+        [JsonPropertyName("true_peak_db")] public double? TruePeak { get; set; }
+    }
+    public sealed class Recommendation
+    {
+        [JsonPropertyName("title")] public string Title { get; set; } = "";
+        [JsonPropertyName("description")] public string Description { get; set; } = "";
+        [JsonPropertyName("advice")] public string Advice { get; set; } = "";
+        [JsonPropertyName("severity")] public string Severity { get; set; } = "info";
     }
 }

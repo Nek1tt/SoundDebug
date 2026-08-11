@@ -1,0 +1,39 @@
+name: MVP checks
+
+on:
+  push:
+    branches: [main, vlada, "release/**"]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install DSP test dependencies
+        run: |
+          grep -v '^demucs==' services/workers/dsp_worker/requirements.txt > /tmp/dsp-requirements.txt
+          pip install -r /tmp/dsp-requirements.txt
+      - run: python -m compileall -q services shared tests
+      - run: python -m unittest tests.test_reference_matcher -v
+      - run: python tests/test_dsp_analyzer.py
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - run: dotnet build frontend/SoundDebug.Frontend/SoundDebug.Frontend.csproj --configuration Release
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose config --quiet

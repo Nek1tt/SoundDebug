@@ -47,4 +47,15 @@ public class ReportService
 
         return await response.Content.ReadFromJsonAsync<ReportResponse>();
     }
+
+    public async Task<bool> SaveFeedbackAsync(int jobId, int rating, string comment)
+    {
+        var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
+        if (string.IsNullOrWhiteSpace(token)) return false;
+        _reportHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _reportHttp.PostAsJsonAsync(
+            $"reports/{jobId}/feedback",
+            new { rating, comment });
+        return response.IsSuccessStatusCode;
+    }
 }

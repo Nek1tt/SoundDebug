@@ -61,3 +61,12 @@
 .upload-button:hover {
     filter: blur(2px);
 }
+
+.stem-toggle {
+    color: white;
+    margin: 18px 0 8px;
+    z-index: 1;
+}
+
+.stem-toggle input { margin-right: 8px; }
+.form-error { color: #ff8a8a; max-width: 680px; z-index: 1; }

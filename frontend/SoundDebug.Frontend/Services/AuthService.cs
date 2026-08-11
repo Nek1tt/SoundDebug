@@ -1,8 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.JSInterop;
-using Microsoft.VisualBasic;
 using SoundDebug.Frontend.Models;
 
 public class AuthService
@@ -21,7 +19,7 @@ public class AuthService
 
     public async Task<bool> LoginAsync(string email, string password)
     {
-        var response = await _authHttp.PostAsJsonAsync("/auth/login", new { email, password });
+        var response = await _authHttp.PostAsJsonAsync("auth/login", new { email, password });
         if (!response.IsSuccessStatusCode) return false;
 
         var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
@@ -37,19 +35,8 @@ public class AuthService
 
     public async Task<bool> RegisterAsync(string email, string password)
     {
-        var response = await _authHttp.PostAsJsonAsync("/auth/register", new { email, password });
-        if (!response.IsSuccessStatusCode) return false;
-
-        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        if (result == null) return false;
-
-        Token = result.access_token;
-        await _js.InvokeVoidAsync("localStorage.setItem", "authToken", Token);
-        IsAuthenticated = true;
-
-        _authHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
-
-        return true;
+        var response = await _authHttp.PostAsJsonAsync("auth/register", new { email, password });
+        return response.IsSuccessStatusCode;
     }
 
     public async Task LogoutAsync()
@@ -83,7 +70,7 @@ public class AuthService
 
             _authHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await _authHttp.GetAsync("/auth/me");
+            var response = await _authHttp.GetAsync("auth/me");
             if (!response.IsSuccessStatusCode) return null;
 
             var user = await response.Content.ReadFromJsonAsync<UserModel>();

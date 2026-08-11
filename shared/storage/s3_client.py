@@ -58,3 +58,8 @@ def get_presigned_url(object_name: str, expires_seconds: int = 3600) -> str:
         object_name,
         expires=timedelta(seconds=expires_seconds),
     )
+
+
+def delete_file(object_name: str) -> None:
+    """Remove an uploaded source/reference after analysis finishes."""
+    get_minio_client().remove_object(MINIO_BUCKET, object_name)

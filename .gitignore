@@ -149,6 +149,8 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+!.env.example
 .envrc
 .venv
 env/
@@ -203,6 +205,14 @@ cython_debug/
 
 # Ruff stuff:
 .ruff_cache/
+
+# .NET / Blazor build output
+**/bin/
+**/obj/
+
+# Local runtime data and model cache
+.models/
+data/runtime/
 
 # PyPI configuration file
 .pypirc

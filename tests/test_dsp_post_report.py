@@ -80,6 +80,7 @@ LIVE_MODE   = args.live
 GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://localhost:8000")
 # DSP-воркер пишет в report-service напрямую (минуя gateway и JWT)
 REPORT_INTERNAL_URL = os.environ.get("REPORT_URL", "http://localhost:8003")
+INTERNAL_SERVICE_TOKEN = os.environ.get("INTERNAL_SERVICE_TOKEN", "dev-internal-token")
 MOCK_PORT   = 19999
 MOCK_URL    = f"http://127.0.0.1:{MOCK_PORT}"
 
@@ -105,11 +106,18 @@ def section(title: str) -> None:
 
 # ── HTTP helpers (без внешних зависимостей) ───────────────────────────────────
 
-def _post_json(url: str, payload: dict, token: str | None = None) -> tuple[int, dict]:
+def _post_json(
+    url: str,
+    payload: dict,
+    token: str | None = None,
+    service_token: str | None = None,
+) -> tuple[int, dict]:
     body    = json.dumps(payload).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
+    if service_token:
+        headers["X-Service-Token"] = service_token
     req = Request(url, data=body, headers=headers, method="POST")
     try:
         with urlopen(req, timeout=15) as resp:
@@ -316,7 +324,7 @@ def run_live(wav_normal: str, wav_problem: str, metrics: dict,
     # Именно так работает реальный dsp_worker: он обращается к report-service
     # напрямую по внутренней сети (REPORT_INTERNAL_URL), без токена.
     post_url = f"{REPORT_INTERNAL_URL}/reports/{job_id}"
-    st, resp = _post_json(post_url, payload)
+    st, resp = _post_json(post_url, payload, service_token=INTERNAL_SERVICE_TOKEN)
     check(f"POST → 200 или 201 (got {st})", st in (200, 201),
           f"url={post_url} | {resp}")
     check("Ответ содержит job_id",    resp.get("job_id") == job_id, str(resp))
@@ -346,7 +354,11 @@ def run_live(wav_normal: str, wav_problem: str, metrics: dict,
         m2   = analyze(wav_problem)
         r2   = generate_recommendations(m2, "techno")
         p2   = {"metrics": {**m2, "genre": "techno", "recommendations": r2}}
-        st2, resp2 = _post_json(f"{REPORT_INTERNAL_URL}/reports/{job_id}", p2)
+        st2, resp2 = _post_json(
+            f"{REPORT_INTERNAL_URL}/reports/{job_id}",
+            p2,
+            service_token=INTERNAL_SERVICE_TOKEN,
+        )
         check(f"Повторный POST → 200/201 (got {st2})", st2 in (200, 201), str(resp2))
         clip = resp2.get("metrics", {}).get("loudness", {}).get("clipping_count", 0)
         check("clipping_count > 0 в обновлённом репорте", clip > 0, f"got {clip}")

@@ -18,8 +18,16 @@
         <DragNDrop H1Text="1 Загрузите вашу запись" FilesSelected="HandleTrack"></DragNDrop>
         <GenreSelect GenreSelectedChanged="HandleGenre"></GenreSelect>
         <DragNDrop H1Text="3 Загрузите ваши референсы" Type="multiple" FilesSelected="HandleReferences"></DragNDrop>
-        <button @onclick="CreateJson" class="upload-button">
-            Отправить
+        <label class="stem-toggle">
+            <input type="checkbox" @bind="stemAnalysis" />
+            Demucs-анализ по стемам (beta, выполняется дольше)
+        </label>
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <p class="form-error">@error</p>
+        }
+        <button @onclick="CreateJson" class="upload-button" disabled="@isSubmitting">
+            @(isSubmitting ? "Загружаем…" : "Запустить анализ")
         </button>
     </div>
 </div>
@@ -29,6 +37,8 @@
     private List<IBrowserFile> referenceFiles = new();
     private string genre = "";
     private string error = "";
+    private bool stemAnalysis;
+    private bool isSubmitting;
 
     public class CreateJobResponse
     {
@@ -56,8 +66,10 @@
 
     private async Task CreateJson()
     {
+        if (isSubmitting) return;
         try
         {
+            error = "";
             if (trackFiles == null || trackFiles.Count == 0)
             {
                 error = "Файл не выбран";
@@ -70,12 +82,9 @@
                 return;
             }
 
-            string? response = await UploadService.CreateJob(genre, trackFiles[0]);
-
-            if (string.IsNullOrEmpty(response))
-            {
-                return; 
-            }
+            isSubmitting = true;
+            string response = await UploadService.CreateJob(
+                genre, trackFiles[0], referenceFiles, stemAnalysis);
 
             using var doc = JsonDocument.Parse(response);
             var jobId = doc.RootElement.GetProperty("id").GetInt32();
@@ -85,6 +94,10 @@
         catch (Exception ex)
         {
             error = ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
         }
     }
 }

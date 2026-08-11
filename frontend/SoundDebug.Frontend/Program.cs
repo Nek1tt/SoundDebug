@@ -6,20 +6,14 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddHttpClient("Auth", client =>
-{
-    client.BaseAddress = new Uri("http://localhost:8001/");
-});
+var configuredApi = builder.Configuration["ApiBaseUrl"] ?? "api/";
+var apiBase = Uri.TryCreate(configuredApi, UriKind.Absolute, out var absoluteApi)
+    ? absoluteApi
+    : new Uri(new Uri(builder.HostEnvironment.BaseAddress), configuredApi);
 
-builder.Services.AddHttpClient("Upload", client =>
-{
-    client.BaseAddress = new Uri("http://localhost:8002/");
-});
-
-builder.Services.AddHttpClient("Report", client =>
-{
-    client.BaseAddress = new Uri("http://localhost:8003/");
-});
+builder.Services.AddHttpClient("Auth", client => client.BaseAddress = apiBase);
+builder.Services.AddHttpClient("Upload", client => client.BaseAddress = apiBase);
+builder.Services.AddHttpClient("Report", client => client.BaseAddress = apiBase);
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<AuthService>();

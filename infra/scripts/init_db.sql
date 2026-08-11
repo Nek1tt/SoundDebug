@@ -34,6 +34,12 @@ CREATE TABLE IF NOT EXISTS report (
     metrics JSON    NOT NULL DEFAULT '{}'
 );
 
+CREATE TABLE IF NOT EXISTS feedback (
+    job_id  INTEGER PRIMARY KEY REFERENCES job(id) ON DELETE CASCADE,
+    rating  INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment VARCHAR(1000) NOT NULL DEFAULT ''
+);
+
 -- ──────────────────────────────────────────────────────────────
 -- JOB_STATUS_CACHE — Redis-зеркало статуса (в БД для истории)
 -- Актуальные данные хранятся в Redis, сюда пишется итог

@@ -10,24 +10,14 @@ from typing import Optional, Any
 
 import jwt
 from fastapi import FastAPI, HTTPException, Depends, Header
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.config import JWT_SECRET, JWT_ALGORITHM
+from shared.config import JWT_SECRET, JWT_ALGORITHM, INTERNAL_SERVICE_TOKEN
 from shared.db.session import get_db
-from shared.db.models import Job, Report
+from shared.db.models import Feedback, Job, Report
 
 app = FastAPI(title="Report Service", version="1.0.0")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 def get_current_user_id(authorization: Optional[str] = Header(None)) -> int:
     if not authorization or not authorization.startswith("Bearer "):
@@ -47,6 +37,11 @@ class ReportResponse(BaseModel):
 
 class CreateReportRequest(BaseModel):
     metrics: dict[str, Any]
+
+
+class FeedbackRequest(BaseModel):
+    rating: int
+    comment: str = ""
 
 
 @app.get("/health")
@@ -69,12 +64,37 @@ async def get_report(
     return ReportResponse(job_id=job_id, metrics=report.metrics)
 
 
+@app.post("/reports/{job_id}/feedback", status_code=201)
+async def save_feedback(
+    job_id: int,
+    body: FeedbackRequest,
+    user_id: int = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.rating < 1 or body.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+    job = await db.get(Job, job_id)
+    if not job or job.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Job not found")
+    feedback = await db.get(Feedback, job_id)
+    if feedback:
+        feedback.rating = body.rating
+        feedback.comment = body.comment[:1000]
+    else:
+        db.add(Feedback(job_id=job_id, rating=body.rating, comment=body.comment[:1000]))
+    await db.commit()
+    return {"job_id": job_id, "saved": True}
+
+
 @app.post("/reports/{job_id}", response_model=ReportResponse, status_code=201)
 async def create_report(
     job_id: int,
     body: CreateReportRequest,
+    x_service_token: Optional[str] = Header(None),
     db: AsyncSession = Depends(get_db),
 ):
+    if x_service_token != INTERNAL_SERVICE_TOKEN:
+        raise HTTPException(status_code=403, detail="Forbidden")
     job = await db.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")

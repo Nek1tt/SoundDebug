@@ -35,7 +35,7 @@
         {
             @foreach (var job in userJobs)
             {
-                <Job Data="job" />
+                <Job Data="job" DeleteRequested="DeleteJob" />
             }
         }
     </div>
@@ -65,6 +65,14 @@
 
         Username = Email?.Split('@')[0];
         @* isLoaded = true; *@
+    }
+
+    private async Task DeleteJob(int jobId)
+    {
+        if (await UploadService.DeleteJob(jobId) && userJobs is not null)
+        {
+            userJobs.RemoveAll(job => job.id == jobId);
+        }
     }
 }
 

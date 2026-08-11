@@ -1,0 +1,25 @@
+{
+  "version": "mvp-2026-08",
+  "purpose": "Educational metadata for rule-based diagnoses. Rules remain evidence-driven in recommendations.py.",
+  "entries": [
+    {"id": "ERR_CLIP", "topic": "digital clipping", "verify": "Inspect the waveform and bypass the final limiter."},
+    {"id": "ERR_TRUEPEAK", "topic": "inter-sample peak", "verify": "Measure again with a true-peak meter after codec preview."},
+    {"id": "WARN_OVERLOUD", "topic": "loudness normalization", "verify": "Compare loudness-matched, not at raw playback level."},
+    {"id": "WARN_QUIET", "topic": "integrated loudness", "verify": "Check whether wide dynamics are intentional before changing gain."},
+    {"id": "WARN_OVERCOMPRESSED", "topic": "crest factor", "verify": "Bypass bus compression and compare at matched loudness."},
+    {"id": "INFO_BRICK", "topic": "dynamic range", "verify": "Inspect short-term loudness and transients by song section."},
+    {"id": "ERR_PHASE", "topic": "negative phase correlation", "verify": "Audition in mono and inspect M/S routing."},
+    {"id": "WARN_PHASE", "topic": "low phase correlation", "verify": "Check chorus, Haas delays and stereo reverb in mono."},
+    {"id": "WARN_OVERWIDE", "topic": "stereo width", "verify": "Compare the side channel and mono fold-down."},
+    {"id": "INFO_MONO", "topic": "mono source", "verify": "Confirm that mono delivery is intentional."},
+    {"id": "INFO_DARK", "topic": "low spectral centroid", "verify": "Loudness-match a reference before considering EQ."},
+    {"id": "INFO_BRIGHT", "topic": "high spectral centroid", "verify": "Check multiple playback systems and codec preview."},
+    {"id": "WARN_EXCESS_BAND", "topic": "tonal balance", "verify": "Use references and stems to locate the contributing source."},
+    {"id": "INFO_BPM_UNCERTAIN", "topic": "tempo estimation", "verify": "Tap tempo or inspect the DAW grid manually."},
+    {"id": "INFO_RHYTHM_WEAK", "topic": "beat confidence", "verify": "Treat as information for ambient or rubato material."}
+  ],
+  "sources": [
+    {"title": "ITU-R BS.1770", "url": "https://www.itu.int/rec/R-REC-BS.1770"},
+    {"title": "EBU R 128", "url": "https://tech.ebu.ch/publications/r128"}
+  ]
+}
