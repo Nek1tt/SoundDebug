@@ -1,0 +1,25 @@
+{
+  "experiment": "SoundDebug P0 trustworthy diagnostic invariants",
+  "date": "2026-08-12",
+  "sample_rate": 22050,
+  "results": {
+    "band_share_sum_pct": 99.999,
+    "max_band_share_change_after_minus_20_db_gain_pct_points": 0.0,
+    "sub_bass_share_increase_after_48_hz_component_pct_points": 44.847,
+    "reference_sub_bass_delta_db": 16.12,
+    "minimum_local_phase_correlation": -0.3333,
+    "phase_risk_segment_count": 2,
+    "clean_clipping_samples": 0,
+    "injected_clipping_samples": 200,
+    "tonal_advice_contains_plugin_setting": false
+  },
+  "checks": {
+    "shares_sum_to_100": true,
+    "gain_invariant": true,
+    "sub_bass_change_detected": true,
+    "anti_phase_localised": true,
+    "clipping_injection_detected": true,
+    "no_direct_eq_command": true
+  },
+  "passed": true
+}

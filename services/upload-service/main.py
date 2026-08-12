@@ -24,7 +24,7 @@ from shared.config import (
     JWT_ALGORITHM,
     REDIS_URL,
     MAX_UPLOAD_MB,
-    STEM_ANALYSIS_DEFAULT,
+    AUDIO_ML_DEFAULT,
 )
 from shared.db.session import get_db
 from shared.db.models import Job
@@ -81,7 +81,9 @@ async def create_job(
     genre: str = Form(...),
     file: UploadFile = File(...),
     references: list[UploadFile] = File(default=[]),
-    stem_analysis: bool = Form(default=STEM_ANALYSIS_DEFAULT),
+    audio_ml_analysis: bool = Form(default=AUDIO_ML_DEFAULT),
+    # Kept temporarily for clients from report v1. Demucs is not scheduled.
+    stem_analysis: bool = Form(default=False),
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -127,7 +129,8 @@ async def create_job(
             "s3_key":  object_name,
             "genre":   genre,
             "reference_keys": reference_keys,
-            "stem_analysis": stem_analysis,
+            "stem_analysis": False,
+            "audio_ml_analysis": audio_ml_analysis,
         },
         queue="dsp",
     )

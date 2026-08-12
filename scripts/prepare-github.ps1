@@ -9,6 +9,6 @@ if ((git branch --show-current) -ne $Branch) {
 git add -A
 git status --short
 Write-Host "Review the list above, then run:"
-Write-Host 'git commit -m "feat: ship SoundDebug MVP with Demucs"'
+Write-Host 'git commit -m "feat: add evidence-based SoundDebug analysis v2"'
 Write-Host "git push -u origin $Branch"
 Write-Host "Then open a pull request from $Branch into main."

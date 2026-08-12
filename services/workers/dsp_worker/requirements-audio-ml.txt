@@ -1,0 +1,7 @@
+# Optional research backend. Pinned to the reviewed upstream commit (2026-08-11).
+audiobox_aesthetics @ git+https://github.com/facebookresearch/audiobox-aesthetics.git@2618e9d451b456e9328b39495b5e6234678aa550
+huggingface-hub==0.34.3
+rich==14.1.0
+safetensors==0.6.2
+submitit==1.5.3
+tqdm==4.67.1

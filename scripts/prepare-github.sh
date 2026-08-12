@@ -8,6 +8,6 @@ fi
 git add -A
 git status --short
 echo "Review the list above, then run:"
-echo 'git commit -m "feat: ship SoundDebug MVP with Demucs"'
+echo 'git commit -m "feat: add evidence-based SoundDebug analysis v2"'
 echo "git push -u origin $branch"
 echo "Then open a pull request from $branch into main."

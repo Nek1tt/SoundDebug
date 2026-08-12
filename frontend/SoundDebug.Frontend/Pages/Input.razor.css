@@ -62,11 +62,12 @@
     filter: blur(2px);
 }
 
-.stem-toggle {
+.analysis-toggle {
     color: white;
     margin: 18px 0 8px;
     z-index: 1;
 }
 
-.stem-toggle input { margin-right: 8px; }
+.analysis-toggle input { margin-right: 8px; }
+.toggle-hint { color: #a8bac4; font-size: .85rem; z-index: 1; }
 .form-error { color: #ff8a8a; max-width: 680px; z-index: 1; }

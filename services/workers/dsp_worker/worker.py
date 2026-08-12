@@ -6,9 +6,10 @@ Celery-воркер DSP-анализа.
 Задача: analyze_track
   1. Скачивает аудиофайл из MinIO по s3_key
   2. Запускает DSP-анализ (analyzer.py)
-  3. Генерирует рекомендации (recommendations.py)
-  4. Обновляет статус в Redis на каждом шаге
-  5. Отправляет результат в report-service (POST /reports/{job_id})
+  3. Сравнивает с референсами и опционально запускает Audio ML
+  4. Генерирует evidence-based diagnostics (recommendations.py)
+  5. Обновляет статус в Redis на каждом шаге
+  6. Отправляет результат в report-service (POST /reports/{job_id})
 
 Запуск воркера:
   celery -A services.workers.dsp_worker.worker worker \
@@ -36,14 +37,13 @@ from shared.config import (
     MINIO_BUCKET,
     REPORT_SERVICE_URL,
     INTERNAL_SERVICE_TOKEN,
-    DEMUCS_MODEL,
 )
 from shared.storage.s3_client import delete_file, get_minio_client
 
 from .analyzer import analyze
-from .recommendations import generate_recommendations
+from .audio_ml import analyse_audio_ml
+from .report_builder import build_report
 from services.workers.reference_worker.curve_matcher import compare_to_genre, compare_to_references
-from services.workers.stem_worker.demucs_runner import separate_and_analyze
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +132,7 @@ def analyze_track(
     genre: str,
     reference_keys: list[str] | None = None,
     stem_analysis: bool = False,
+    audio_ml_analysis: bool = False,
 ) -> dict:
     """
     Основная задача DSP-анализа.
@@ -171,40 +172,26 @@ def analyze_track(
             for index, reference_key in enumerate(reference_keys):
                 ref_path = str(Path(temp_dir) / f"reference-{index}{Path(reference_key).suffix or '.mp3'}")
                 _download_from_minio(reference_key, ref_path)
-                reference_metrics.append(analyze(ref_path))
+                reference_metrics.append(analyze(ref_path, include_rhythm=False))
             reference_comparison = (
                 compare_to_references(dsp_metrics, reference_metrics)
                 or compare_to_genre(dsp_metrics, genre)
             )
             _set_progress(job_id, 70)
 
-            stem_result = {"enabled": False, "reason": "not requested"}
+            # ``stem_analysis`` is accepted only so queued v1 jobs fail safely.
+            # Demucs is intentionally out of the v2 release scope.
             if stem_analysis:
-                _set_status(job_id, "stem-analysis")
-                stem_result = separate_and_analyze(
-                    tmp_path,
-                    Path(temp_dir) / "demucs",
-                    model=DEMUCS_MODEL,
-                )
+                logger.info("[DSP] Ignoring legacy stem_analysis flag for job_id=%s", job_id)
+            audio_ml = analyse_audio_ml(tmp_path, requested=audio_ml_analysis)
             _set_progress(job_id, 88)
 
-        # ── Шаг 4: генерируем рекомендации ────────────────────────────────
-        recommendations = generate_recommendations(dsp_metrics, genre)
+        # ── Шаг 4: генерируем диагностику из уже собранных evidence ───────
+        full_report = build_report(
+            dsp_metrics, genre, reference_comparison, audio_ml,
+            uses_user_references=bool(reference_keys),
+        )
         _set_progress(job_id, 92)
-
-        # ── Шаг 5: собираем финальный отчёт ───────────────────────────────
-        full_report = {
-            **dsp_metrics,
-            "genre": genre,
-            "reference_comparison": reference_comparison,
-            "stem_analysis": stem_result,
-            "recommendations": recommendations,
-            "report_version": "mvp-1",
-            "artistic_intent_warning": (
-                "SoundDebug detects measurable deviations, not artistic mistakes. "
-                "Check every recommendation against your intent and listening context."
-            ),
-        }
 
         # ── Шаг 6: отправляем в report-service ────────────────────────────
         success = _post_report(job_id, full_report)

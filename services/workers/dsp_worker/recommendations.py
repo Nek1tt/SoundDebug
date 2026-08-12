@@ -1,457 +1,335 @@
-"""
-services/workers/dsp_worker/recommendations.py
+"""P0 explainable diagnostic engine.
 
-Движок диагностики: превращает сырые метрики DSP
-в список образовательных рекомендаций.
-
-Каждая рекомендация — словарь:
-    {
-        "id":          "ERR_01",           # уникальный код
-        "category":    "technical",        # technical | tonal_balance | stereo | dynamics
-        "title":       "Клиппинг сигнала", # заголовок
-        "severity":    "high",             # high | warning | info
-        "description": "...",              # объяснение проблемы
-        "advice":      "...",              # конкретное действие
-        "value":       -6.2,              # измеренное значение (для UI)
-        "unit":        "LUFS",            # единица измерения
-        "target":      -14.0,            # эталонное значение (если есть)
-    }
+Every conclusion is explicitly classified as a directly measured fact, an
+observed reference difference, or a hypothesis that must be auditioned.
+Processing values are never inferred from a stereo master.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-# ── Отраслевые пороги ─────────────────────────────────────────────────────────
+FACT = "FACT"
+REFERENCE_DIFFERENCE = "REFERENCE_DIFFERENCE"
+HYPOTHESIS = "HYPOTHESIS"
 
-# Целевые LUFS по жанрам (интегральная громкость для стриминга)
-GENRE_LUFS_TARGET: dict[str, float] = {
-    "lo-fi":       -16.0,
-    "modern-pop":  -14.0,
-    "hip-hop":     -12.0,
-    "techno":      -9.0,   # Techno традиционно громче
-    "electronic":  -11.0,
+TRUE_PEAK_CONTEXT_DBTP = -1.0
+PLR_DENSE_CONTEXT_LU = 7.0
+DC_OFFSET_LIMIT = 0.01
+MONO_LOSS_LIMIT_DB = -3.0
+BASS_SIDE_LIMIT_PCT = 25.0
+TONAL_DIFFERENCE_LIMIT_DB = 3.0
+
+BAND_LABELS = {
+    "sub_bass": "суббасе 20–60 Гц",
+    "bass": "басе 60–250 Гц",
+    "low_mid": "нижней середине 250–500 Гц",
+    "mid": "середине 500 Гц–2 кГц",
+    "upper_mid": "верхней середине 2–6 кГц",
+    "presence": "области presence 6–10 кГц",
+    "air": "области air 10–20 кГц",
 }
-GENRE_LUFS_TOLERANCE = 3.0  # ±3 LUFS — нормальное отклонение
 
-# Crest Factor: ниже 6 дБ → слишком сжатый («перекомпрессированный»)
-CREST_FACTOR_MIN = 6.0
-# Динамический диапазон
-DYNAMIC_RANGE_MIN = 3.0  # dB, ниже — кирпич
+PRIORITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+CLASS_ORDER = {FACT: 0, HYPOTHESIS: 1, REFERENCE_DIFFERENCE: 2}
 
-# True Peak: стандарт стриминга -1.0 dBFS (Apple -1, Spotify -1, YouTube -1)
-TRUE_PEAK_LIMIT = -1.0
 
-# Стерео
-PHASE_CORR_MIN = 0.4       # ниже → подозрение на противофазу
-STEREO_WIDTH_MAX = 1.5     # очень широкий → возможны проблемы в моно
-
-# Тональный баланс: отклонение от «нормального» диапазона (dB)
-BAND_EXCESS_THRESHOLD = 6.0   # на столько выше соседних диапазонов = проблема
-
-# BPM
-BPM_MIN, BPM_MAX = 50.0, 200.0  # вне диапазона = ошибка трекера
-
-# ── Вспомогательные функции ───────────────────────────────────────────────────
-
-def _rec(
+def _card(
     code: str,
+    classification: str,
     category: str,
     title: str,
-    severity: str,
-    description: str,
-    advice: str,
-    value: Any = None,
-    unit: str = "",
-    target: Any = None,
+    priority: str,
+    reliability: str,
+    reliability_reason: str,
+    what_detected: str,
+    why_attention: str,
+    audible_meaning: str,
+    possible_causes: list[str],
+    daw_check_steps: list[str],
+    do_not_automate: str,
+    *,
+    evidence: list[str],
+    timestamps: list[float] | None = None,
+    reference_context: str | None = None,
 ) -> dict[str, Any]:
-    r: dict[str, Any] = {
+    if classification not in {FACT, REFERENCE_DIFFERENCE, HYPOTHESIS}:
+        raise ValueError(f"Unsupported finding class: {classification}")
+    return {
         "id": code,
+        "classification": classification,
         "category": category,
         "title": title,
-        "severity": severity,
-        "description": description,
-        "advice": advice,
+        "priority": priority,
+        "severity": {"CRITICAL": "high", "HIGH": "warning", "MEDIUM": "info", "LOW": "info"}[priority],
+        "reliability": reliability,
+        "reliability_reason": reliability_reason,
+        "what_detected": what_detected,
+        "why_attention": why_attention,
+        "audible_meaning": audible_meaning,
+        "possible_causes": possible_causes,
+        "daw_check_steps": daw_check_steps,
+        "do_not_automate": do_not_automate,
+        "reference_context": reference_context,
+        "evidence": evidence,
+        "timestamps_sec": timestamps or [],
     }
-    if value is not None:
-        r["value"] = value
-    if unit:
-        r["unit"] = unit
-    if target is not None:
-        r["target"] = target
-    return r
 
 
-# ── Детекторы проблем ──────────────────────────────────────────────────────────
-
-def _check_clipping(loudness: dict) -> list[dict]:
-    recs = []
-    count = loudness.get("clipping_count", 0)
-    pct = loudness.get("clipping_percent", 0.0)
-    if count > 0:
-        severity = "high" if pct > 0.1 else "warning"
-        recs.append(_rec(
-            "ERR_CLIP",
-            "technical",
-            "Клиппинг (цифровое искажение)",
-            severity,
-            f"Обнаружено {count} сэмплов с амплитудой ≥ 0.99 ({pct:.3f}% трека). "
-            "Клиппинг — это цифровое обрезание сигнала: когда волна «упирается» в потолок 0 dBFS, "
-            "появляются жёсткие прямоугольные искажения, неотличимые от дешёвого перегруза.",
-            "Убавьте мастер-фейдер на 1.5–3 dB. Если громкость важна — вместо фейдера "
-            "используйте True Peak Limiter (например, FabFilter Pro-L 2) с порогом -1.0 dBTP.",
-            value=count,
-            unit="samples",
-        ))
-    return recs
-
-
-def _check_true_peak(loudness: dict) -> list[dict]:
-    recs = []
-    tp = loudness.get("true_peak_db")
-    if tp is None:
-        return recs
-    if tp > TRUE_PEAK_LIMIT:
-        recs.append(_rec(
-            "ERR_TRUEPEAK",
-            "technical",
-            "True Peak превышает норму стриминга",
-            "high",
-            f"True Peak = {tp:.2f} dBFS, норма для Spotify / Apple Music / YouTube = {TRUE_PEAK_LIMIT} dBFS. "
-            "При конвертации в сжатые форматы (AAC, MP3) возникают inter-sample peaks — "
-            "невидимые пики между сэмплами, которые вызывают искажения у слушателя.",
-            "Поставьте True Peak Limiter на мастер-шине с потолком -1.0 dBTP. "
-            "Проверьте результат в любом EBU R128-анализаторе (Youlean, SPAN).",
-            value=tp,
-            unit="dBTP",
-            target=TRUE_PEAK_LIMIT,
-        ))
-    elif tp > -0.3:
-        recs.append(_rec(
-            "WARN_HEADROOM",
-            "technical",
-            "Почти нет запаса (headroom)",
-            "warning",
-            f"True Peak = {tp:.2f} dBFS. Очень мало headroom. "
-            "После мастеринга и конвертации сигнал может перегрузиться.",
-            "Рекомендуется держать True Peak не выше -1.0 dBFS перед сдачей на стриминг.",
-            value=tp,
-            unit="dBTP",
-        ))
-    return recs
-
-
-def _check_lufs(loudness: dict, genre: str) -> list[dict]:
-    recs = []
-    lufs = loudness.get("lufs")
-    if lufs is None:
-        return recs
-    target = GENRE_LUFS_TARGET.get(genre, -14.0)
-    diff = lufs - target
-
-    if diff > GENRE_LUFS_TOLERANCE:
-        recs.append(_rec(
-            "WARN_OVERLOUD",
-            "dynamics",
-            "Трек слишком громкий для жанра",
-            "warning",
-            f"LUFS = {lufs:.1f}, целевое для {genre} = {target:.0f} LUFS. "
-            "Стриминговые сервисы нормализуют громкость: слишком громкий трек "
-            "будет тихонько убавлен, что сделает ваш мастеринг бессмысленным.",
-            f"Убавьте общую громкость до {target:.0f} LUFS. "
-            "Если хотите громко — используйте динамику (Crest Factor), а не просто уровень.",
-            value=round(lufs, 1),
-            unit="LUFS",
-            target=target,
-        ))
-    elif diff < -GENRE_LUFS_TOLERANCE:
-        recs.append(_rec(
-            "WARN_QUIET",
-            "dynamics",
-            "Трек тише нормы для жанра",
-            "warning",
-            f"LUFS = {lufs:.1f}, целевое для {genre} = {target:.0f} LUFS. "
-            "Трек будет звучать тихо на фоне конкурентов в плейлисте.",
-            f"Подтяните мастер до {target:.0f} LUFS. Работайте с компрессией и лимитингом, "
-            "не просто поднимайте фейдер — это вызовет клиппинг.",
-            value=round(lufs, 1),
-            unit="LUFS",
-            target=target,
-        ))
-    return recs
-
-
-def _check_dynamics(loudness: dict) -> list[dict]:
-    recs = []
-    crest = loudness.get("crest_factor_db", 99.0)
-    dr = loudness.get("dynamic_range_db", 99.0)
-
-    if crest < CREST_FACTOR_MIN:
-        recs.append(_rec(
-            "WARN_OVERCOMPRESSED",
-            "dynamics",
-            "Перекомпрессия — потеря динамики",
-            "warning",
-            f"Crest Factor = {crest:.1f} dB (норма ≥ {CREST_FACTOR_MIN} dB). "
-            "Слишком мало разницы между тихими и громкими моментами. "
-            "Это типичный признак «loudness war» — трек звучит устало и плоско.",
-            "Уменьшите ratio или attack на мастер-компрессоре. "
-            "Попробуйте параллельную компрессию вместо прямой. "
-            "Цель: Crest Factor 8–15 dB для большинства жанров.",
-            value=round(crest, 1),
-            unit="dB",
-            target=CREST_FACTOR_MIN,
-        ))
-
-    if dr < DYNAMIC_RANGE_MIN:
-        recs.append(_rec(
-            "INFO_BRICK",
-            "dynamics",
-            "Очень малый динамический диапазон",
-            "info",
-            f"Dynamic Range = {dr:.1f} dB. Трек звучит одинаково громко на протяжении всего времени. "
-            "Это не всегда плохо (электронная музыка часто намеренно плоская), "
-            "но может сделать трек утомительным при долгом прослушивании.",
-            "Добавьте динамические моменты: вступление тише, дроп громче. "
-            "Используйте автоматизацию громкости и фильтров.",
-            value=round(dr, 1),
-            unit="dB",
-        ))
-    return recs
-
-
-def _check_stereo(stereo: dict) -> list[dict]:
-    recs = []
-    corr = stereo.get("phase_correlation", 1.0)
-    width = stereo.get("stereo_width", 0.0)
-    is_mono = stereo.get("is_mono", True)
-
-    if is_mono:
-        recs.append(_rec(
-            "INFO_MONO",
-            "stereo",
-            "Моно-файл",
-            "info",
-            "Загружен моно-трек. Метрики стерео недоступны.",
-            "Если это готовый мастер — убедитесь, что ваш DAW рендерит стерео. "
-            "Для большинства стриминговых платформ нужен стерео-файл.",
-        ))
-        return recs
-
-    if corr < PHASE_CORR_MIN:
-        recs.append(_rec(
-            "ERR_PHASE",
-            "stereo",
-            "Проблема с фазой — возможная противофаза",
-            "high",
-            f"Phase Correlation = {corr:.3f} (норма ≥ {PHASE_CORR_MIN}). "
-            "Когда L и R каналы находятся в противофазе, при воспроизведении в моно "
-            "(Bluetooth-колонка, телефон) часть звука исчезнет или инвертируется. "
-            "Проверьте бас — именно там чаще всего возникает проблема.",
-            "Включите «Mono» на мастер-шине и прослушайте. "
-            "Инструмент с фазовой проблемой исчезнет или изменится. "
-            "Используйте плагин Correlation Meter (iZotope Insight, SPAN Plus) "
-            "и Mono Maker для баса ниже 150 Hz.",
-            value=round(corr, 3),
-            target=PHASE_CORR_MIN,
-        ))
-    elif corr < 0.7:
-        recs.append(_rec(
-            "WARN_PHASE",
-            "stereo",
-            "Слабая моно-совместимость",
-            "warning",
-            f"Phase Correlation = {corr:.3f}. Стерео широкое, но может возникнуть "
-            "потеря низких частот при прослушивании в моно.",
-            "Используйте Mid/Side EQ: убедитесь, что бас (<120 Hz) сосредоточен в Mid-канале.",
-            value=round(corr, 3),
-        ))
-
-    if width > STEREO_WIDTH_MAX:
-        recs.append(_rec(
-            "WARN_OVERWIDE",
-            "stereo",
-            "Чрезмерное расширение стерео",
-            "warning",
-            f"Stereo Width = {width:.2f} (рекомендуется < {STEREO_WIDTH_MAX}). "
-            "Сильно расширенное стерео часто содержит фазовые проблемы и звучит «дырявым» в центре.",
-            "Снизьте усиление стерео-расширителя. "
-            "Следите за балансом Mid/Side: Mid должен оставаться плотным.",
-            value=round(width, 2),
-            target=STEREO_WIDTH_MAX,
-        ))
-    return recs
-
-
-def _check_tonal_balance(tonal: dict) -> list[dict]:
-    recs = []
-    band_energy: dict[str, float] = tonal.get("band_energy_db", {})
-
-    if not band_energy:
-        return recs
-
-    band_names = list(BAND_LABELS.keys())
-    values = [band_energy.get(b) for b in band_names]
-
-    # Проверяем аномально выделяющиеся диапазоны
-    valid_values = [v for v in values if v is not None]
-    if len(valid_values) < 3:
-        return recs
-
-    mean_db = sum(valid_values) / len(valid_values)
-
-    for name, val in zip(band_names, values):
-        if val is None:
-            continue
-        excess = val - mean_db
-        if excess > BAND_EXCESS_THRESHOLD:
-            label = BAND_LABELS[name]
-            recs.append(_rec(
-                f"WARN_EXCESS_{name.upper()}",
-                "tonal_balance",
-                f"Избыток в диапазоне {label}",
-                "warning",
-                f"Диапазон {label} на {excess:.1f} dB выше среднего уровня. "
-                f"{BAND_DESCRIPTIONS.get(name, '')}",
-                f"Примените эквализацию: попробуйте убрать {excess:.0f} dB "
-                f"на {BAND_FREQ_HINTS.get(name, 'этой')} Гц полосовым фильтром (Q=1.5). "
-                "Используйте spectrum analyser (SPAN) для визуального контроля.",
-                value=round(excess, 1),
-                unit="dB excess",
-            ))
-
-    # Spectral centroid — слишком тёмный или слишком яркий
-    centroid = tonal.get("spectral_centroid_hz", 0)
-    if centroid < 1000:
-        recs.append(_rec(
-            "INFO_DARK",
-            "tonal_balance",
-            "Спектральный центр смещён в низкие частоты",
-            "info",
-            f"Spectral Centroid = {centroid:.0f} Hz. Трек звучит тёмно и глухо. "
-            "Высоких частот (presence, air) мало относительно баса.",
-            "Добавьте «воздух» — полку (High Shelf) от 8–10 kHz на +2..+3 dB. "
-            "Убедитесь, что тарелки и верхние частоты вокала не срезаны.",
-            value=centroid,
-            unit="Hz",
-        ))
-    elif centroid > 5000:
-        recs.append(_rec(
-            "INFO_BRIGHT",
-            "tonal_balance",
-            "Спектральный центр смещён в высокие частоты",
-            "info",
-            f"Spectral Centroid = {centroid:.0f} Hz. Трек звучит ярко и резко. "
-            "Возможен избыток «цифровой» яркости без плотного баса.",
-            "Проверьте баланс: добавьте Low Shelf от 80–100 Hz на +2 dB "
-            "или чуть срежьте High Shelf от 10 kHz. Слушайте на разных системах.",
-            value=centroid,
-            unit="Hz",
-        ))
-    return recs
-
-
-def _check_bpm(rhythm: dict) -> list[dict]:
-    recs = []
-    bpm = rhythm.get("bpm", 0)
-    confidence = rhythm.get("beat_confidence", 1.0)
-
-    if bpm < BPM_MIN or bpm > BPM_MAX:
-        recs.append(_rec(
-            "INFO_BPM_UNCERTAIN",
-            "technical",
-            "BPM не определён уверенно",
-            "info",
-            f"Алгоритм определил BPM = {bpm:.1f}, но значение выходит за разумный диапазон. "
-            "Возможно, трек сильно синкопирован или темп переменный.",
-            "Проверьте BPM вручную в DAW. "
-            "Если темп переменный (рубато) — это нормально.",
-            value=bpm,
-            unit="BPM",
-        ))
-    elif confidence < 0.3:
-        recs.append(_rec(
-            "INFO_RHYTHM_WEAK",
-            "technical",
-            "Слабо выраженный ритм",
-            "info",
-            f"Уверенность beat-трекера: {confidence:.2f}. "
-            "Трек либо медленный ambient/drone, либо очень сложный ритмически.",
-            "Если планируете синхронизацию в плейлисте — убедитесь, "
-            "что ударные достаточно отчётливы в миксе.",
-            value=confidence,
-        ))
-    return recs
-
-
-# ── Таблицы описаний ──────────────────────────────────────────────────────────
-
-BAND_LABELS: dict[str, str] = {
-    "sub_bass":  "Суббас (20–60 Hz)",
-    "bass":      "Бас (60–250 Hz)",
-    "low_mid":   "Нижняя середина (250–500 Hz)",
-    "mid":       "Середина (500–2000 Hz)",
-    "upper_mid": "Верхняя середина (2–6 kHz)",
-    "presence":  "Присутствие (6–10 kHz)",
-    "air":       "Воздух (10–20 kHz)",
-}
-
-BAND_DESCRIPTIONS: dict[str, str] = {
-    "sub_bass":  "Суббас добавляет «давление», но на маленьких колонках не слышен. "
-                 "Избыток делает микс мутным и монструозным.",
-    "bass":      "Бочка и бас-гитара живут здесь. Избыток даёт 'жирный' звук, "
-                 "но перегружает мастер-шину и 'заваливает' все остальные инструменты.",
-    "low_mid":   "Самый коварный диапазон. Избыток на 200–400 Hz — главная причина "
-                 "«мутного» и «коробочного» звучания микса.",
-    "mid":       "Вокал, гитары, клавишные. Избыток делает звук «гнусавым» и режущим.",
-    "upper_mid": "Диапазон чёткости и атаки. Слишком много — «резкий», болезненный звук. "
-                 "Мало — инструменты «тонут» в миксе.",
-    "presence":  "Ощущение присутствия. Избыток даёт 'цифровой' неестественный звук.",
-    "air":       "Воздух и блеск. Избыток — сибилянс и свист. Мало — тусклый, 'заглушённый' звук.",
-}
-
-BAND_FREQ_HINTS: dict[str, str] = {
-    "sub_bass":  "30–50",
-    "bass":      "80–200",
-    "low_mid":   "250–400",
-    "mid":       "800–1500",
-    "upper_mid": "3000–5000",
-    "presence":  "7000–9000",
-    "air":       "12000–16000",
-}
-
-
-# ── Публичный API ─────────────────────────────────────────────────────────────
-
-def generate_recommendations(metrics: dict[str, Any], genre: str) -> list[dict[str, Any]]:
-    """
-    Принимает полный словарь метрик из analyzer.analyze()
-    и строит список рекомендаций.
-
-    Args:
-        metrics: результат analyzer.analyze()
-        genre:   строка жанра ("lo-fi", "modern-pop", "techno")
-
-    Returns:
-        Список словарей-рекомендаций, отсортированный по severity:
-        high → warning → info
-    """
+def _facts(metrics: dict[str, Any]) -> list[dict[str, Any]]:
     loudness = metrics.get("loudness", {})
-    tonal = metrics.get("tonal", {})
     stereo = metrics.get("stereo", {})
-    rhythm = metrics.get("rhythm", {})
+    meta = metrics.get("meta", {})
+    result: list[dict[str, Any]] = []
 
-    recs: list[dict] = []
-    recs.extend(_check_clipping(loudness))
-    recs.extend(_check_true_peak(loudness))
-    recs.extend(_check_lufs(loudness, genre))
-    recs.extend(_check_dynamics(loudness))
-    recs.extend(_check_stereo(stereo))
-    recs.extend(_check_tonal_balance(tonal))
-    recs.extend(_check_bpm(rhythm))
+    count = int(loudness.get("clipping_count") or 0)
+    if count:
+        events = loudness.get("clipping_events", [])
+        result.append(_card(
+            "FACT_SAMPLE_CLIPPING", FACT, "technical", "В файле найдены отсечённые сэмплы", "CRITICAL",
+            "DIRECT", "Состояние непосредственно измерено в декодированном waveform.",
+            f"{count} сэмплов достигли порога 0.999 FS; они объединены в {len(events)} участков.",
+            "Плоская вершина waveform может быть уже записана в экспорт и не восстанавливается уменьшением громкости готового файла.",
+            "Иногда это слышно как жёсткий щелчок или искажение транзиента; иногда отдельные сэмплы остаются неслышимыми.",
+            ["перегруз до master fader", "жёсткий limiter/clipper", "ошибка gain staging или экспорта"],
+            ["Откройте перечисленные места на sample level.", "Сравните waveform до и после limiter/clipper.", "Сделайте новый экспорт с запасом и проверьте, исчезло ли отсечение.", "Сравните версии на одинаковой воспринимаемой громкости."],
+            "Не уменьшайте master fader после уже перегруженной цепи и не считайте, что это восстановит форму волны.",
+            evidence=[f"samples >= 0.999 FS: {count}", f"regions: {len(events)}"],
+            timestamps=[float(item["start_sec"]) for item in events[:8]],
+        ))
 
-    # Сортировка: high > warning > info
-    order = {"high": 0, "warning": 1, "info": 2}
-    recs.sort(key=lambda r: order.get(r.get("severity", "info"), 3))
+    peak = loudness.get("true_peak_dbtp", loudness.get("true_peak_db"))
+    if peak is not None and float(peak) > TRUE_PEAK_CONTEXT_DBTP:
+        result.append(_card(
+            "FACT_TRUE_PEAK_MARGIN", FACT, "delivery", "True-peak запас меньше контекста −1 dBTP", "HIGH",
+            "MEASURED_ESTIMATE", "Это 4× oversampled estimate, а не сертифицированный meter.",
+            f"Максимальная 4× оценка составляет {float(peak):.2f} dBTP — выше delivery-контекста −1 dBTP.",
+            "Малый inter-sample запас повышает вероятность overs после кодирования, но −1 dBTP не является универсальной художественной нормой.",
+            "После lossy-кодирования могут появиться краткие перегрузы или жёсткость на пиках.",
+            ["высокий limiter ceiling", "агрессивное ограничение пиков", "межсэмпловое восстановление после кодека"],
+            ["Проверьте файл сертифицированным true-peak meter.", "Сделайте codec preview для целевой площадки.", "Экспортируйте вариант с большим ceiling margin.", "Сравните варианты после loudness matching."],
+            "Не считайте −1 dBTP обязательной целью для любого формата и не меняйте limiter только по одному числу.",
+            evidence=[f"4x true-peak estimate: {float(peak):.2f} dBTP", "delivery context: -1 dBTP"],
+        ))
 
-    return recs
+    offsets = [abs(float(value)) for value in loudness.get("dc_offset_by_channel", [])]
+    if offsets and max(offsets) > DC_OFFSET_LIMIT:
+        result.append(_card(
+            "FACT_DC_OFFSET", FACT, "technical", "Обнаружен DC offset", "HIGH", "DIRECT",
+            "Среднее значение waveform по каналу измерено напрямую.",
+            f"Максимальное абсолютное смещение канала составляет {max(offsets):.4f} FS.",
+            "DC offset уменьшает симметричный headroom и может указывать на проблему раньше в цепи.",
+            "Обычно сам DC не воспринимается как музыкальный тон, но может влиять на обработку и доступный headroom.",
+            ["асимметричный waveshaper", "ошибка записи или плагина", "некорректная обработка инфраниза"],
+            ["Проверьте анализатором сигнал до master processing.", "Найдите первый этап цепи, где появляется смещение.", "Сравните корректно удалённый DC вариант на одинаковой громкости."],
+            "Не ставьте произвольный high-pass на слышимую частоту: сначала локализуйте источник.",
+            evidence=[f"max absolute channel mean: {max(offsets):.4f} FS"],
+        ))
+
+    layout = stereo.get("channel_layout")
+    if layout in {"mono", "dual-mono"} or stereo.get("is_mono") is True:
+        label = "один канал" if layout == "mono" or int(meta.get("num_channels") or 1) == 1 else "два практически одинаковых канала (dual mono)"
+        result.append(_card(
+            "FACT_MONO_LAYOUT", FACT, "stereo", "Экспорт фактически моно", "HIGH" if layout == "dual-mono" else "MEDIUM",
+            "DIRECT", "Количество каналов и M/S-энергия измерены непосредственно.",
+            f"Файл содержит {label}; Side-энергия практически отсутствует.",
+            "Для ожидаемого mono master это нормальное состояние. Для полного музыкального mix/master это может быть ошибкой маршрутизации или экспорта.",
+            "Панорама и пространственные различия между каналами отсутствуют или почти отсутствуют.",
+            ["намеренный mono master", "экспорт mono bus", "дублирование одного mono-канала в L/R", "схлопывание stereo processing"],
+            ["Сравните файл с playback внутри DAW.", "Проверьте формат master bus и export channel mode.", "Solo Side: убедитесь, что там действительно нет ожидаемого материала.", "Повторно экспортируйте короткий фрагмент и сравните channel layout."],
+            "Не добавляйте stereo widener, пока не проверена маршрутизация: он не восстановит потерянную stereo information.",
+            evidence=[f"channel layout: {layout or 'mono'}", f"channel count: {meta.get('num_channels')}", f"stereo width: {float(stereo.get('stereo_width') or 0):.4f}"],
+        ))
+    return result
+
+
+def _technical_hypotheses(metrics: dict[str, Any]) -> list[dict[str, Any]]:
+    loudness = metrics.get("loudness", {})
+    stereo = metrics.get("stereo", {})
+    result: list[dict[str, Any]] = []
+    plr = loudness.get("plr_lu")
+    if plr is not None and float(plr) < PLR_DENSE_CONTEXT_LU:
+        result.append(_card(
+            "HYP_DENSE_DYNAMICS", HYPOTHESIS, "dynamics", "Проверьте, не потерялись ли транзиенты", "MEDIUM",
+            "MEDIUM", "Гипотеза основана на PLR; без прослушивания она не доказывает over-compression.",
+            f"PLR составляет {float(plr):.1f} LU: true peak расположен близко к integrated loudness.",
+            "Низкий PLR совместим с плотным мастерингом, но также возникает из-за аранжировки и намеренной эстетики.",
+            "Возможны менее выраженные атаки, ощущение постоянной плотности или утомляемость; но плотный жанровый мастер может звучать корректно.",
+            ["limiter с большой gain reduction", "быстрый bus compressor", "плотная аранжировка", "намеренно ровная динамика"],
+            ["Сделайте loudness-matched A/B с референсами.", "Послушайте kick/snare и другие атаки на коротком loop.", "Временно bypass limiter и bus compression с компенсацией громкости.", "Если атаки возвращаются, по одному включайте stages и найдите источник.", "Сохраните новую версию и повторите A/B."],
+            "Не увеличивайте attack/release и не ослабляйте compressor по готовому числу PLR.",
+            evidence=[f"PLR: {float(plr):.1f} LU"],
+        ))
+
+    minimum = float(stereo.get("minimum_phase_correlation", 1.0))
+    mono_loss = float(stereo.get("mono_fold_down_loss_db", 0.0))
+    risks = stereo.get("phase_risk_segments", [])
+    if minimum < 0.0 or mono_loss < MONO_LOSS_LIMIT_DB:
+        result.append(_card(
+            "HYP_MONO_CANCELLATION", HYPOTHESIS, "stereo", "Проверьте потерю элементов в mono", "HIGH",
+            "HIGH" if minimum < -0.2 else "MEDIUM", "Корреляция и fold-down измерены; слышимость и источник требуют проверки.",
+            f"Минимальная 3-секундная L/R correlation = {minimum:.2f}; общий mono fold-down меняет RMS на {mono_loss:.1f} dB.",
+            "Два независимых признака указывают, что часть Side information может компенсироваться при суммировании каналов.",
+            "В mono отдельные элементы могут стать тише, потерять тело или изменить тембр.",
+            ["polarity mismatch", "short-delay widening", "decorrelation/reverb", "противофазный слой синтезатора"],
+            ["Переключите master в mono в отмеченных местах.", "Назовите элемент, который меняется, до открытия анализаторов.", "По очереди bypass widening, stereo delay и reverb returns.", "Проверьте polarity и M/S routing найденного источника.", "Сравните исправленный вариант в stereo и mono на одинаковой громкости."],
+            "Не сужайте весь master автоматически: проблема может быть локальной и художественно оправданной.",
+            evidence=[f"minimum 3 s correlation: {minimum:.2f}", f"mono fold-down RMS difference: {mono_loss:.1f} dB"],
+            timestamps=[float(item["time_sec"]) for item in risks[:10]],
+        ))
+
+    bass_side = float(stereo.get("bass_side_energy_pct", 0.0))
+    if bass_side > BASS_SIDE_LIMIT_PCT:
+        result.append(_card(
+            "HYP_LOW_END_SIDE", HYPOTHESIS, "stereo", "Проверьте фокус low-end в mono", "MEDIUM", "MEDIUM",
+            "Side share ниже 150 Гц измерен, но допустимость зависит от материала и формата.",
+            f"{bass_side:.1f}% низкочастотной M/S-энергии находится в Side.",
+            "Значительная низкочастотная Side-энергия иногда связана с менее стабильным центром и mono cancellation.",
+            "Bass/kick могут ощущаться менее сфокусированными или меняться при mono playback.",
+            ["стерео-синтезатор", "widening на bass bus", "room/reverb в низах", "различающиеся L/R слои"],
+            ["Прослушайте low-passed Side отдельно.", "Переключите low-end в mono и сравните на равной громкости.", "Поочерёдно отключите пространственную обработку низкочастотных источников.", "Оставьте изменение только если фокус улучшается без потери нужной ширины."],
+            "Не применяйте mono-maker ко всему диапазону до 150 Гц автоматически.",
+            evidence=[f"Side energy below 150 Hz: {bass_side:.1f}%"],
+        ))
+    return result
+
+
+def _reference_context(item: dict[str, Any]) -> str:
+    return (
+        f"{item.get('support_count', 0)} из {item.get('reference_count', 0)} референсов поддерживают направление. "
+        f"{item.get('reliability_reason', '')}"
+    ).strip()
+
+
+def _reference_findings(comparison: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not comparison or comparison.get("source") != "references":
+        return []
+    result: list[dict[str, Any]] = []
+    loudness = comparison.get("loudness_difference")
+    if loudness and abs(float(loudness["difference"])) >= 2.0:
+        delta = float(loudness["difference"])
+        direction = "громче" if delta > 0 else "тише"
+        result.append(_card(
+            "REF_LOUDNESS", REFERENCE_DIFFERENCE, "loudness", "Громкость отличается от выбранных референсов", "LOW",
+            loudness["reliability"], loudness["reliability_reason"],
+            f"Integrated loudness target на {abs(delta):.1f} LU {direction} медианы референсов.",
+            "Разница сохранена отдельно и не влияет на tonal-shape comparison. Это контекст релиза, а не ошибка.",
+            "При несогласованном уровне более громкая версия почти всегда кажется детальнее и лучше, что искажает A/B.",
+            ["другая стадия мастеринга", "разные delivery targets", "иной crest factor", "разница в аранжировке"],
+            ["Выровняйте perceived loudness target и референсов.", "Сравнивайте одинаково плотные секции.", "Решите, соответствует ли уровень конкретной площадке и версии mix/master."],
+            "Не подгоняйте LUFS под жанр и не усиливайте limiter только ради совпадения с референсом.",
+            evidence=[f"target - reference median: {delta:+.1f} LU", f"reference MAD: {float(loudness['reference_mad']):.1f} LU"],
+            reference_context=_reference_context(loudness),
+        ))
+
+    for name, item in comparison.get("dynamics_difference", {}).items():
+        delta = float(item["difference"])
+        if abs(delta) < 1.5:
+            continue
+        label = {"plr": "PLR", "short_term_loudness_spread": "P95–P10 short-term loudness spread", "crest_factor": "crest factor"}.get(name, name)
+        result.append(_card(
+            f"REF_DYNAMICS_{name.upper()}", REFERENCE_DIFFERENCE, "dynamics", f"{label} отличается от референсов", "LOW",
+            item["reliability"], item["reliability_reason"],
+            f"Разница target относительно медианы референсов: {delta:+.1f} {item['unit']}.",
+            "SoundDebug хранит dynamics отдельно от loudness и tonal shape, чтобы не смешивать разные свойства мастера.",
+            "Разница может соответствовать более плотным или более свободным транзиентам, но направление нужно подтвердить слухом.",
+            ["limiting/compression", "плотность аранжировки", "разные секции треков", "намеренная динамическая эстетика"],
+            ["Сделайте loudness-matched A/B.", "Сравните похожие по функции секции.", "Проверьте transient и bus processing через compensated bypass.", "Зафиксируйте, стало ли восприятие лучше, а не только ближе по числу."],
+            "Не переносите численную разницу в threshold, ratio, attack или release компрессора.",
+            evidence=[f"difference: {delta:+.1f} {item['unit']}", f"reference MAD: {float(item['reference_mad']):.1f} {item['unit']}"],
+            reference_context=_reference_context(item),
+        ))
+
+    for name, item in comparison.get("stereo_difference", {}).items():
+        thresholds = {"width": 0.15, "phase_correlation": 0.15, "mono_fold_down": 1.0, "bass_side_energy": 10.0}
+        delta = float(item["difference"])
+        if abs(delta) < thresholds.get(name, 1.0):
+            continue
+        label = {"width": "Stereo width", "phase_correlation": "L/R correlation", "mono_fold_down": "Mono fold-down", "bass_side_energy": "Side-энергия low-end"}.get(name, name)
+        result.append(_card(
+            f"REF_STEREO_{name.upper()}", REFERENCE_DIFFERENCE, "stereo", f"{label} отличается от референсов", "LOW",
+            item["reliability"], item["reliability_reason"],
+            f"Разница target относительно медианы референсов: {delta:+.2f} {item['unit']}.",
+            "Это наблюдаемое пространственное отличие, а не признак качества само по себе.",
+            "Target может ощущаться шире, уже или иначе вести себя в mono — в зависимости от самой метрики.",
+            ["панорама и аранжировка", "stereo ambience", "widening", "различия секций или исходников"],
+            ["Сравните одинаковые секции после loudness matching.", "Переключайте stereo/mono и отмечайте конкретные исчезающие элементы.", "Проверяйте источники и spatial returns по одному."],
+            "Не копируйте width или M/S processing референса на весь master автоматически.",
+            evidence=[f"difference: {delta:+.2f} {item['unit']}"], reference_context=_reference_context(item),
+        ))
+
+    outliers = comparison.get("outlier_segments", [])
+    for band, item in comparison.get("tonal_shape_difference", {}).items():
+        delta = float(item["difference_db"])
+        if abs(delta) < TONAL_DIFFERENCE_LIMIT_DB:
+            continue
+        direction = "выше" if delta > 0 else "ниже"
+        label = BAND_LABELS.get(band, band)
+        reliability = item["reliability"]
+        classification = HYPOTHESIS if reliability in {"MEDIUM", "HIGH"} and int(item["support_count"]) >= 2 else REFERENCE_DIFFERENCE
+        title = f"Проверьте накопление энергии в {label}" if classification == HYPOTHESIS and delta > 0 else f"Устойчивая тональная разница в {label}" if classification == HYPOTHESIS else f"Тональная разница в {label}"
+        audible = (
+            "Такое соотношение иногда воспринимается как warmth, fullness или плотность, но при накоплении может уменьшать разделение и читаемость."
+            if band == "low_mid" and delta > 0 else
+            "Изменение может восприниматься как другой вес, яркость или читаемость, но художественный результат зависит от аранжировки."
+        )
+        result.append(_card(
+            f"{'HYP' if classification == HYPOTHESIS else 'REF'}_TONAL_{band.upper()}", classification, "tonal_balance", title,
+            "HIGH" if classification == HYPOTHESIS and abs(delta) >= 6 and reliability == "HIGH" else "MEDIUM" if classification == HYPOTHESIS else "LOW",
+            reliability, item["reliability_reason"],
+            f"Относительная спектральная форма target в {label} на {abs(delta):.1f} dB {direction} медианы референсов после исключения общей громкости.",
+            f"Направление проверяется отдельно по каждому треку: {item['support_count']} из {item['reference_count']} референсов показывают значимое отличие в ту же сторону.",
+            audible,
+            ["баланс уровней источников", "регистр и аранжировка", "вокал, гитары или бас", "reverb tails", "EQ/saturation в отдельных цепях"],
+            ["Сделайте loudness-matched A/B с каждым референсом.", "Сравните сходные по плотности секции, а не случайные моменты.", f"Найдите источники, занимающие область {label}.", "Временно bypass или ослабьте соответствующие processing chains по одному.", "Оцените, улучшилась ли читаемость, и только затем сохраните новую версию.", "Повторно запустите SoundDebug и проверьте направление изменения."],
+            f"Не вырезайте автоматически {abs(delta):.1f} dB: reference difference не является требуемым EQ gain и не задаёт Q.",
+            evidence=[f"relative-shape difference: {delta:+.1f} dB", f"support: {item['support_count']}/{item['reference_count']}", f"reference MAD: {float(item['reference_mad_db']):.1f} dB"],
+            timestamps=[float(value["time_sec"]) for value in outliers if value.get("band") == band][:8],
+            reference_context=_reference_context(item),
+        ))
+    return result
+
+
+def _audio_ml(audio_ml: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not audio_ml or not audio_ml.get("enabled") or not audio_ml.get("scores"):
+        return []
+    pq = audio_ml["scores"].get("PQ")
+    if pq is None:
+        return []
+    rounded = round(float(pq), 1)
+    return [_card(
+        "HYP_AUDIOBOX_PQ", HYPOTHESIS, "audio_ml", "Экспериментальная ML-оценка production quality", "LOW", "UNCALIBRATED",
+        "Модель не возвращает доверительный интервал для конкретного трека; SoundDebug не подставляет выдуманный confidence.",
+        f"Audiobox Aesthetics предсказал PQ примерно {rounded:.1f}/10.",
+        "Это субъективный no-reference signal. Он не локализует проблему и не доказывает качество сведения.",
+        "Результат полезнее всего как дополнительная ось при сравнении версий одного и того же трека.",
+        ["техническое качество и кодирование", "жанровое смещение модели", "аранжировка и запись", "сведение и мастеринг вместе"],
+        ["Сохраните оценку текущей версии.", "Измените только одну подтверждённую проблему.", "Сделайте loudness-matched blind A/B.", "Повторите ML-анализ и учитывайте score только вместе с DSP и предпочтением слушателя."],
+        "Не оптимизируйте трек ради роста model score и не интерпретируйте его как процент профессионального качества.",
+        evidence=[f"Audiobox PQ rounded display: {rounded:.1f}/10"],
+    )]
+
+
+def generate_findings(
+    metrics: dict[str, Any], genre: str | None = None, comparison: dict[str, Any] | None = None,
+    audio_ml: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Return all findings in deterministic priority order; genre is context only."""
+    findings = [*_facts(metrics), *_technical_hypotheses(metrics), *_reference_findings(comparison), *_audio_ml(audio_ml)]
+    findings.sort(key=lambda item: (
+        PRIORITY_ORDER[item["priority"]], CLASS_ORDER[item["classification"]], item["id"],
+    ))
+    return findings
+
+
+def split_priority_findings(findings: list[dict[str, Any]], limit: int = 3) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Keep the main screen bounded without discarding lower-priority evidence."""
+    return findings[:limit], findings[limit:]
+
+
+# Compatibility entrypoint for integrations that still import this name.
+def generate_recommendations(
+    metrics: dict[str, Any], genre: str | None = None, comparison: dict[str, Any] | None = None,
+    audio_ml: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    return generate_findings(metrics, genre, comparison, audio_ml)

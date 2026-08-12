@@ -213,6 +213,7 @@ cython_debug/
 # Local runtime data and model cache
 .models/
 data/runtime/
+analysis-output/
 
 # PyPI configuration file
 .pypirc

@@ -3,10 +3,16 @@ $ErrorActionPreference = "Stop"
 if (-not (Test-Path ".env")) {
     Copy-Item ".env.example" ".env"
     function New-Secret {
-        $bytes = New-Object byte[] 32
-        [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-        return -join ($bytes | ForEach-Object { $_.ToString("x2") })
-    }
+    	$bytes = New-Object byte[] 32
+    	$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    	try {
+                $rng.GetBytes($bytes)
+    	}
+    	finally {
+        	$rng.Dispose()
+    	}
+    		return -join ($bytes | ForEach-Object { $_.ToString("x2") })
+	}
     $content = Get-Content ".env" -Raw
     $content = $content.Replace("change-me-postgres", (New-Secret))
     $content = $content.Replace("change-me-minio", (New-Secret))

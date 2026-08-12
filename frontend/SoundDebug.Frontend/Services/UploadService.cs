@@ -19,14 +19,14 @@ public class UploadService
         string genre,
         IBrowserFile file,
         IReadOnlyList<IBrowserFile> references,
-        bool stemAnalysis)
+        bool audioMlAnalysis)
     {
         var token = await GetRequiredTokenAsync();
 
         using var content = new MultipartFormDataContent();
 
         content.Add(new StringContent(genre), "genre");
-        content.Add(new StringContent(stemAnalysis.ToString().ToLowerInvariant()), "stem_analysis");
+        content.Add(new StringContent(audioMlAnalysis.ToString().ToLowerInvariant()), "audio_ml_analysis");
 
         var stream = file.OpenReadStream(50 * 1024 * 1024);
         var trackContent = new StreamContent(stream);

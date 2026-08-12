@@ -72,7 +72,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: uploads
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
-      STEM_ANALYSIS_DEFAULT: ${STEM_ANALYSIS_DEFAULT:-false}
+      AUDIO_ML_DEFAULT: ${AUDIO_ML_DEFAULT:-false}
     expose: ["8002"]
     depends_on:
       db-migrate:
@@ -107,6 +107,7 @@ services:
     build:
       context: .
       dockerfile: services/workers/dsp_worker/Dockerfile
+      target: ${DSP_WORKER_TARGET:-runtime}
     restart: unless-stopped
     environment:
       <<: *common-env
@@ -116,10 +117,11 @@ services:
       MINIO_BUCKET: uploads
       REPORT_SERVICE_URL: http://report-service:8003
       MAX_AUDIO_DURATION_SEC: ${MAX_AUDIO_DURATION_SEC:-900}
-      DEMUCS_MODEL: ${DEMUCS_MODEL:-htdemucs}
-      OMP_NUM_THREADS: ${DEMUCS_CPU_THREADS:-4}
+      AUDIO_ML_ENABLED: ${AUDIO_ML_ENABLED:-false}
+      AUDIO_ML_CHECKPOINT: ${AUDIO_ML_CHECKPOINT:-}
+      OMP_NUM_THREADS: ${DSP_CPU_THREADS:-4}
     volumes:
-      - demucs_cache:/root/.cache/torch
+      - audio_ml_cache:/root/.cache
     depends_on:
       redis:
         condition: service_healthy
@@ -194,4 +196,4 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
-  demucs_cache:
+  audio_ml_cache:

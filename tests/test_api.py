@@ -50,7 +50,7 @@ def main() -> int:
         requests.post(
             f"{BASE}/jobs",
             headers=headers,
-            data={"genre": "electronic", "stem_analysis": "false"},
+            data={"genre": "electronic", "audio_ml_analysis": "false"},
             files={"file": ("fixture.wav", wav_fixture(), "audio/wav")},
             timeout=30,
         ),
@@ -79,9 +79,20 @@ def main() -> int:
         raise AssertionError("analysis timed out")
 
     report = require(requests.get(f"{BASE}/reports/{job['id']}", headers=headers, timeout=10), 200)
-    for key in ("loudness", "tonal", "stereo", "rhythm", "recommendations"):
+    for key in ("loudness", "tonal", "stereo", "rhythm", "recommendations", "additional_findings", "technical_details"):
         if key not in report["metrics"]:
             raise AssertionError(f"report has no {key}")
+    metrics = report["metrics"]
+    if metrics.get("report_version") != "p0-trustworthy-diagnostics-1":
+        raise AssertionError(f"unexpected report version: {metrics.get('report_version')}")
+    if len(metrics["recommendations"]) > 3:
+        raise AssertionError("P0 main screen contract allows at most three recommendations")
+    for finding in metrics["recommendations"] + metrics["additional_findings"]:
+        if finding.get("classification") not in {"FACT", "REFERENCE_DIFFERENCE", "HYPOTHESIS"}:
+            raise AssertionError(f"invalid finding class: {finding}")
+    shares = metrics["tonal"].get("band_energy_pct", {})
+    if not shares or abs(sum(shares.values()) - 100.0) > 0.1:
+        raise AssertionError(f"invalid tonal power shares: {shares}")
 
     require(
         requests.post(

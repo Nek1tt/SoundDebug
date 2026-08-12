@@ -1,41 +1,66 @@
 # Changelog
 
-## [Unreleased] — MVP target 2026-08-23
+## P0 — Trustworthy Diagnostic Engine (2026-08-12)
+
+- Added the strict `FACT`, `REFERENCE_DIFFERENCE`, and `HYPOTHESIS` finding classes.
+- Replaced short recommendation snippets with full educational diagnostic cards.
+- Rebuilt reference comparison around independent per-track support instead of pooled segment counts.
+- Separated loudness, relative tonal shape, dynamics, and stereo differences.
+- Removed the combined similarity score and percentage-style confidence from the P0 report.
+- Added textual reliability with explicit `support_count/reference_count` evidence.
+- Limited the main screen to three findings; preserved the rest in `additional_findings`.
+- Added `technical_details` and explicit measurement-method notes.
+- Renamed P95–P10 short-term loudness spread so it is not presented as certified EBU LRA.
+- Added dual-mono detection and a diagnostic path for unexpected mono exports.
+- Rounded Audiobox PQ to one decimal and removed the invented fixed confidence.
+- Added P0 start/verification scripts and regression tests.
+
+## [0.2.0-evidence] — 2026-08-11
+
+### Refactored
+
+- Replaced raw STFT magnitude dB with spectral power shares (%) and centred log-ratios.
+- Replaced mean-only genre rules with a three-stage pipeline: measurement → robust comparison → diagnosis.
+- Genre no longer determines a hard-coded LUFS target.
+- Tonal recommendations now require user references; genre profiles are low-confidence display-only fallback.
+- Reference matching now pools 3-second segments and uses median/MAD, per-band confidence and outlier timestamps.
+- Reference files skip unused BPM/key extraction to reduce analysis latency.
+- Recommendations now include evidence, confidence, timestamps, possible causes and an explicit DAW verification step.
+- Removed direct commands such as “cut 21 dB”; broad 0.5–2 dB audition ranges are suggested only after listening confirms a reference delta.
 
 ### Added
 
-- One-origin Blazor + API production deployment.
-- Five aligned genres and up to three reference tracks.
-- 4× oversampled, per-channel true-peak estimate and loudness-range indicator.
-- Reference-conditioned tonal, loudness and stereo comparison.
-- Optional Demucs `htdemucs` four-stem analysis.
-- Failed-job UI, 2-second polling and structured report sections.
-- Upload limits and post-analysis deletion of source/reference audio.
-- Release setup, start, smoke-test and GitHub preparation scripts.
-- Per-report feedback and deletion of analyses from user history.
+- BS.1770 K-weighted short-term loudness timeline and EBU Tech 3342-style gated LRA.
+- PLR, per-channel true-peak estimates, clipping regions and DC offset.
+- Local L/R phase timeline, minimum correlation, mono fold-down RMS delta and Side energy below 150 Hz.
+- Key-confidence estimate and explicit uncertainty in the report.
+- Optional Audiobox Aesthetics backend pinned to upstream commit `2618e9d`; `PQ` is displayed as an experimental secondary signal.
+- Multi-stage DSP Docker image: small deterministic `runtime` and opt-in `audio-ml` target.
+- Standalone Docker analysis scripts and JSON CLI.
+- Synthetic invariant experiment and nine focused unit tests for the v2 semantics.
+- New report UI with metric explanations, spectral percentages, reference confidence and evidence cards.
 
-### Fixed
+### Removed from this release
 
-- Protected the upload page from anonymous access and return users to it after
-  login instead of sending an empty Bearer token and exposing `Missing token`.
-- Attach JWT authorization per frontend request and handle expired sessions with
-  a clear re-login flow.
-- Fixed DSP worker startup by copying the reference and stem worker packages
-  required by its imports into the Docker image.
-- Smoke tests now detect an unavailable Celery worker before E2E jobs remain
-  indefinitely at `pending 0%`.
-- Added a Docker build-context ignore list for secrets, Git metadata, caches and
-  generated frontend artefacts.
+- Demucs dependency, model cache and active stem-analysis path.
+- Instrument-specific conclusions from a finished master.
+- Uncalibrated “dark/bright”, fixed crest-factor and genre-loudness verdicts.
 
-### Security
+### Compatibility
 
-- Removed committed `.env` and generated build output.
-- Closed public report writes and added an internal service token.
-- Only the web frontend publishes a host port.
+- API still accepts the legacy `stem_analysis` field but ignores it, so queued or old clients do not crash.
+- Legacy JSON aliases (`lufs`, `true_peak_db`, `band_energy_db`) remain for one transition release.
 
-### Known MVP limitations
+### Verified
 
-- Demucs runs on CPU in the default Compose profile.
-- LRA is a documented short-term P95–P10 estimate, not the final gated EBU implementation.
-- Genre profiles are fallback guidance; user references take priority.
-- No email verification, password reset, admin panel or analytics dashboard yet.
+- Python compile check and `git diff --check`.
+- 9/9 unit tests passed in a clean environment built from worker requirements.
+- Synthetic suite passed: gain invariance, 100% band-share sum, injected sub-bass, local anti-phase, clipping and safe recommendation wording.
+- Full Docker/Blazor build remains a host gate because Docker and .NET SDK are unavailable in the handoff environment.
+
+## [0.1.0-mvp] — 2026-08-11
+
+- One-origin Blazor/API deployment, authentication, jobs, reports and history.
+- Celery/Redis worker, MinIO transient uploads, PostgreSQL reports and feedback.
+- Five genres, up to three references, source cleanup, smoke test and E2E test.
+- Fixed missing worker packages and missing frontend JWT flow.

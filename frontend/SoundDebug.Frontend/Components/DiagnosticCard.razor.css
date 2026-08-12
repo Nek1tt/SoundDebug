@@ -1,0 +1,21 @@
+.diagnostic-card { margin: 18px 0; padding: 22px; border-radius: 16px; background: #0c2027; border: 1px solid #1a3a45; border-left: 4px solid #55e8c1; color: #e5f0f3; }
+.diagnostic-card.high { border-left-color: #ff7070; }
+.diagnostic-card.warning { border-left-color: #ffc857; }
+.diagnostic-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.diagnostic-meta span { padding: 5px 9px; border-radius: 999px; font-size: .74rem; background: #132d36; color: #b9cdd3; }
+.diagnostic-meta .fact { color: #78d5ff; border: 1px solid #285b70; }
+.diagnostic-meta .reference_difference { color: #c8b9ff; border: 1px solid #554b7c; }
+.diagnostic-meta .hypothesis { color: #71edca; border: 1px solid #2f6659; }
+h3 { margin: 8px 0 16px; color: #fff; font-size: 1.3rem; }
+.diagnostic-section { margin-top: 14px; }
+.diagnostic-section h4, .do-not h4, .reference-context h4 { margin-bottom: 5px; color: #e8f3f6; font-size: .94rem; }
+.diagnostic-section p, .do-not p, .reference-context p, .diagnostic-section li { color: #bacdd3; line-height: 1.55; }
+.diagnostic-section ul, .diagnostic-section ol { padding-left: 22px; }
+.daw-steps { padding: 14px; background: #0a2b29; border: 1px solid #2b655a; border-radius: 10px; }
+.do-not { margin-top: 14px; padding: 14px; background: #2a1c1c; border: 1px solid #6a3939; border-radius: 10px; }
+.reference-context { margin-top: 14px; padding: 14px; background: #1b1d31; border: 1px solid #4d4a78; border-radius: 10px; }
+.listen-places { margin-top: 12px; color: #8ee8d0; }
+.evidence-details { margin-top: 14px; color: #91aab3; }
+.evidence-details summary { cursor: pointer; color: #b9cdd3; }
+.evidence-details ul { padding-left: 22px; }
+@media (max-width: 700px) { .diagnostic-card { padding: 16px; } }

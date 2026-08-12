@@ -6,7 +6,7 @@ shared/storage/s3_client.py
 
 Бакеты (по ERD MINIO_S3_STORAGE):
   uploads/raw audio files  → bucket "uploads", prefix "raw/"
-  stems/Demucs output      → bucket "uploads", prefix "stems/"
+  derived reports          → PostgreSQL (audio is not retained)
   genre-curves/reference   → bucket "uploads", prefix "genre-curves/"
 """
 import io

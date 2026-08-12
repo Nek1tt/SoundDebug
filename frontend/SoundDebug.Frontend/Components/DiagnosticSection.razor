@@ -1,0 +1,6 @@
+<div class="diagnostic-section"><h4>@Title</h4><p>@Text</p></div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter, EditorRequired] public string Text { get; set; } = "";
+}

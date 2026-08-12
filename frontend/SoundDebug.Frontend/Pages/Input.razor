@@ -19,10 +19,11 @@
         <DragNDrop H1Text="1 Загрузите вашу запись" FilesSelected="HandleTrack"></DragNDrop>
         <GenreSelect GenreSelectedChanged="HandleGenre"></GenreSelect>
         <DragNDrop H1Text="3 Загрузите ваши референсы" Type="multiple" FilesSelected="HandleReferences"></DragNDrop>
-        <label class="stem-toggle">
-            <input type="checkbox" @bind="stemAnalysis" />
-            Demucs-анализ по стемам (beta, выполняется дольше)
+        <label class="analysis-toggle">
+            <input type="checkbox" @bind="audioMlAnalysis" />
+            <span><strong>Audio ML beta</strong> — добавить субъективную оценку Production Quality</span>
         </label>
+        <p class="toggle-hint">Требует расширенный worker. DSP-диагностика работает без нейросети.</p>
         @if (!string.IsNullOrWhiteSpace(error))
         {
             <p class="form-error">@error</p>
@@ -38,7 +39,7 @@
     private List<IBrowserFile> referenceFiles = new();
     private string genre = "";
     private string error = "";
-    private bool stemAnalysis;
+    private bool audioMlAnalysis;
     private bool isSubmitting;
 
     protected override void OnInitialized()
@@ -91,7 +92,7 @@
 
             isSubmitting = true;
             string response = await UploadService.CreateJob(
-                genre, trackFiles[0], referenceFiles, stemAnalysis);
+                genre, trackFiles[0], referenceFiles, audioMlAnalysis);
 
             using var doc = JsonDocument.Parse(response);
             var jobId = doc.RootElement.GetProperty("id").GetInt32();

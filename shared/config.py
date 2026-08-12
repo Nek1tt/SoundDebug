@@ -38,5 +38,6 @@ INTERNAL_SERVICE_TOKEN: str = os.environ.get("INTERNAL_SERVICE_TOKEN", "dev-inte
 # MVP resource limits
 MAX_UPLOAD_MB: int = int(os.environ.get("MAX_UPLOAD_MB", "50"))
 MAX_AUDIO_DURATION_SEC: int = int(os.environ.get("MAX_AUDIO_DURATION_SEC", "900"))
-STEM_ANALYSIS_DEFAULT: bool = os.environ.get("STEM_ANALYSIS_DEFAULT", "false").lower() == "true"
-DEMUCS_MODEL: str = os.environ.get("DEMUCS_MODEL", "htdemucs")
+AUDIO_ML_ENABLED: bool = os.environ.get("AUDIO_ML_ENABLED", "false").lower() == "true"
+AUDIO_ML_DEFAULT: bool = os.environ.get("AUDIO_ML_DEFAULT", "false").lower() == "true"
+AUDIO_ML_CHECKPOINT: str | None = os.environ.get("AUDIO_ML_CHECKPOINT") or None

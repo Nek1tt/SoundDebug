@@ -12,9 +12,6 @@ soundfile==0.12.1
 numpy==1.26.4
 scipy==1.13.0
 
-# Optional per-job stem analysis (enabled from the upload form)
-demucs==4.0.1
-
 # Audio I/O backends (soundfile dependency)
 cffi>=1.0.0
 

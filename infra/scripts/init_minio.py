@@ -13,7 +13,7 @@ from minio import Minio
 from shared.config import MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY
 
 BUCKETS = [
-    "uploads",       # raw audio files + stems/Demucs output
+    "uploads",       # transient source and reference audio
     "genre-curves",  # reference JSON кривые жанров
 ]
 

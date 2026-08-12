@@ -1,130 +1,156 @@
 @page "/job/{jobId:int}"
 @using SoundDebug.Frontend.Components
 @using SoundDebug.Frontend.Models
-@using System.Text.Json.Serialization
+@using System.Globalization
 @inject UploadService UploadService
 @inject ReportService ReportService
 @implements IDisposable
 
 <div class="main-layout">
     <Navbar />
-    <div class="content-container">
+    <main class="content-container">
         @if (!string.IsNullOrWhiteSpace(error))
         {
-            <div class="error-panel">
-                <h2>Анализ не завершён</h2>
-                <p>@error</p>
-                <a href="/input">Запустить новый анализ</a>
-            </div>
+            <section class="error-panel"><h2>Анализ не завершён</h2><p>@error</p><a href="/input">Запустить новый анализ</a></section>
         }
-        else if (report == null)
+        else if (report is null)
         {
-            <div class="loader-section">
-                <h2 class="job-id">Задача #@jobId</h2>
+            <section class="loader-section">
+                <h2>Задача #@jobId</h2>
                 <div class="progress-wrapper">
                     <svg class="progress-ring" width="200" height="200">
-                        <circle class="progress-ring__background" stroke="rgba(255,255,255,0.1)" stroke-width="8" fill="transparent" r="90" cx="100" cy="100" />
-                        <circle class="progress-ring__circle" stroke="#00ffcc" stroke-width="8" stroke-dasharray="565.48" stroke-dashoffset="@(565.48 - (565.48 * (status?.Progress ?? 0) / 100))" stroke-linecap="round" fill="transparent" r="90" cx="100" cy="100" />
+                        <circle stroke="rgba(255,255,255,0.1)" stroke-width="8" fill="transparent" r="90" cx="100" cy="100" />
+                        <circle class="progress-ring__circle" stroke="#55e8c1" stroke-width="8" stroke-dasharray="565.48" stroke-dashoffset="@(565.48 - 565.48 * (status?.Progress ?? 0) / 100)" stroke-linecap="round" fill="transparent" r="90" cx="100" cy="100" />
                     </svg>
-                    <div class="progress-text">
-                        <span class="percent">@(status?.Progress ?? 0)%</span>
-                        <span class="status-label">@StatusLabel(status?.Status)</span>
-                    </div>
+                    <div class="progress-text"><span class="percent">@(status?.Progress ?? 0)%</span><span class="status-label">@StatusLabel(status?.Status)</span></div>
                 </div>
-                <p class="loading-hint">DSP-анализ обычно занимает до минуты. Demucs может занять несколько минут.</p>
-            </div>
+                <p class="loading-hint">SoundDebug разделяет измерения, reference differences и проверяемые гипотезы.</p>
+            </section>
         }
         else
         {
-            <div class="report-container animate-fade-in">
-                <div class="report-header"><h1>Отчёт SoundDebug</h1></div>
+            <article class="report-container animate-fade-in">
+                <header class="report-header">
+                    <div><span class="eyebrow">@report.ReportVersion</span><h1>Диагностика микса</h1></div>
+                    <div class="class-counts">
+                        <span class="count fact">@report.Summary.Facts фактов</span>
+                        <span class="count reference">@report.Summary.ReferenceDifferences отличий</span>
+                        <span class="count hypothesis">@report.Summary.Hypotheses гипотез</span>
+                    </div>
+                </header>
                 <p class="intent-warning">@report.ArtisticIntentWarning</p>
-                <p class="education-links">
-                    Методика: <a href="https://www.itu.int/rec/R-REC-BS.1770" target="_blank">ITU-R BS.1770</a>
-                    · <a href="https://tech.ebu.ch/publications/r128" target="_blank">EBU R 128</a>
-                </p>
 
-                <div class="metrics-grid">
-                    <Metric Label="BPM" Value="@(report.Rhythm.Bpm?.ToString("F1") ?? "—")" />
-                    <Metric Label="LUFS" Value="@(report.Loudness.Lufs?.ToString("F1") ?? "—")" />
-                    <Metric Label="True Peak, dBTP" Value="@(report.Loudness.TruePeak?.ToString("F1") ?? "—")" />
-                    <Metric Label="LRA, LU" Value="@(report.Loudness.LoudnessRange?.ToString("F1") ?? "—")" />
-                    <Metric Label="Тональность" Value="@($"{report.Rhythm.Key} {report.Rhythm.Mode}")" />
-                    <Metric Label="Stereo width" Value="@(report.Stereo.Width?.ToString("F2") ?? "—")" />
-                    <Metric Label="Phase correlation" Value="@(report.Stereo.Phase?.ToString("F2") ?? "—")" />
-                    <Metric Label="Длительность" Value="@(report.Meta.Duration.HasValue ? TimeSpan.FromSeconds(report.Meta.Duration.Value).ToString(@"mm\:ss") : "—")" />
-                </div>
-
-                <h2 class="section-title">Тональный баланс</h2>
-                <div class="data-table">
-                    @foreach (var band in report.Tonal.BandEnergy)
-                    {
-                        <div><span>@BandLabel(band.Key)</span><strong>@band.Value.ToString("F1") dB</strong></div>
-                    }
-                </div>
-
-                @if (report.ReferenceComparison is not null)
-                {
-                    <h2 class="section-title">Сравнение с референсами</h2>
-                    <p>@ComparisonLabel(report.ReferenceComparison) Плюс означает, что диапазона в вашем треке больше.</p>
-                    <div class="data-table">
-                        @foreach (var band in report.ReferenceComparison.TonalDeltaDb)
-                        {
-                            <div><span>@BandLabel(band.Key)</span><strong>@(band.Value >= 0 ? "+" : "")@band.Value.ToString("F1") dB</strong></div>
-                        }
-                    </div>
-                }
-
-                @if (report.StemAnalysis.Enabled)
-                {
-                    <h2 class="section-title">Demucs Stem Analysis</h2>
-                    <div class="data-table">
-                        @foreach (var stem in report.StemAnalysis.Stems)
-                        {
-                            <div><span>@stem.Key</span><strong>@(stem.Value.Lufs?.ToString("F1") ?? "—") LUFS · @(stem.Value.TruePeak?.ToString("F1") ?? "—") dBTP</strong></div>
-                        }
-                    </div>
-                    <p class="disclaimer">@report.StemAnalysis.Disclaimer</p>
-                }
-
-                <h2 class="section-title">Рекомендации</h2>
+                <h2 class="section-title">Главное: что проверить сначала</h2>
+                <p class="section-lead">Не больше трёх выводов. Приоритет учитывает прямоту измерения, потенциальный риск и устойчивость между референсами.</p>
                 <div class="recommendations-list">
                     @if (report.Recommendations.Count == 0)
                     {
-                        <div class="rec-item info">Критических технических отклонений не найдено.</div>
+                        <div class="empty-result"><strong>Приоритетных выводов нет</strong><p>Это не оценка качества: SoundDebug проверяет только ограниченный набор признаков.</p></div>
                     }
-                    @foreach (var rec in report.Recommendations)
+                    @foreach (var finding in report.Recommendations)
                     {
-                        <div class="rec-item @rec.Severity">
-                            <strong>@rec.Title</strong>
-                            <p>@rec.Description</p>
-                            <div class="advice-box"><span class="advice-tag">Проверить в DAW</span> @rec.Advice</div>
-                        </div>
+                        <DiagnosticCard Finding="finding" />
                     }
                 </div>
 
-                <div class="feedback-panel">
-                    <h2>Отчёт был полезен?</h2>
-                    <div class="rating-buttons">
-                        @for (var score = 1; score <= 5; score++)
+                @if (report.ReferenceComparison?.Source == "references")
+                {
+                    <h2 class="section-title">Что именно отличается от референсов</h2>
+                    <p class="section-lead">Общая громкость исключена из tonal comparison и показана отдельно. Числа ниже описывают различия, а не ошибки или настройки EQ.</p>
+                    <div class="comparison-domains">
+                        @if (report.ReferenceComparison.Loudness is not null)
                         {
-                            var value = score;
-                            <button class="@(feedbackRating == value ? "selected" : "")" @onclick="() => feedbackRating = value">@value</button>
+                            <div><span>Громкость</span><strong>@Signed(report.ReferenceComparison.Loudness.Difference, "F1") LU</strong><small>@Support(report.ReferenceComparison.Loudness)</small></div>
+                        }
+                        @foreach (var item in report.ReferenceComparison.Dynamics)
+                        {
+                            <div><span>@DimensionLabel(item.Key)</span><strong>@Signed(item.Value.Difference, "F1") @item.Value.Unit</strong><small>@Support(item.Value)</small></div>
+                        }
+                        @foreach (var item in report.ReferenceComparison.Stereo)
+                        {
+                            <div><span>@DimensionLabel(item.Key)</span><strong>@Signed(item.Value.Difference, "F2") @item.Value.Unit</strong><small>@Support(item.Value)</small></div>
                         }
                     </div>
-                    <textarea @bind="feedbackComment" maxlength="1000" placeholder="Что оказалось полезным или нет?"></textarea>
-                    <button class="feedback-submit" @onclick="SaveFeedback" disabled="@(feedbackRating == 0 || feedbackSaved)">
-                        @(feedbackSaved ? "Спасибо, сохранено" : "Отправить отзыв")
-                    </button>
+                    <h3 class="subsection-title">Относительная спектральная форма</h3>
+                    <div class="delta-list">
+                        @foreach (var band in report.ReferenceComparison.Tonal.OrderByDescending(item => Math.Abs(item.Value.Difference)))
+                        {
+                            <div class="delta-row">
+                                <span>@BandLabel(band.Key)</span>
+                                <strong class="@(Math.Abs(band.Value.Difference) >= 3 ? "notable" : "")">@Signed(band.Value.Difference, "F1") dB</strong>
+                                <small>@band.Value.SupportCount/@band.Value.ReferenceCount · @ReliabilityLabel(band.Value.Reliability)</small>
+                            </div>
+                        }
+                    </div>
+                    <p class="method-note">@report.ReferenceComparison.Note</p>
+                }
+                else if (report.ReferenceComparison is not null)
+                {
+                    <div class="genre-context"><strong>Жанр используется только как контекст.</strong> @report.ReferenceComparison.Note</div>
+                }
+
+                @if (report.AdditionalFindings.Count > 0)
+                {
+                    <details class="additional-findings">
+                        <summary>Additional findings · @report.AdditionalFindings.Count</summary>
+                        <p>Наблюдения ниже не вошли в первые три по приоритету, но не были отброшены.</p>
+                        @foreach (var finding in report.AdditionalFindings)
+                        {
+                            <DiagnosticCard Finding="finding" />
+                        }
+                    </details>
+                }
+
+                @if (report.AudioMl.Enabled)
+                {
+                    <h2 class="section-title">Audio ML beta</h2>
+                    <div class="ml-panel"><div><span>Production Quality</span><strong>≈ @report.AudioMl.Scores.GetValueOrDefault("PQ").ToString("F1") / 10</strong></div><p>@report.AudioMl.Caveat</p></div>
+                }
+                else if (!string.IsNullOrWhiteSpace(report.AudioMl.Reason) && report.AudioMl.Reason != "not requested")
+                {
+                    <div class="ml-error"><strong>Audio ML не выполнился:</strong> @report.AudioMl.Reason</div>
+                }
+
+                <details class="technical-details">
+                    <summary>Technical details</summary>
+                    <p>Сырые показатели предназначены для проверки evidence, а не для самостоятельного verdict.</p>
+                    <div class="metrics-grid">
+                        <Metric Label="Integrated loudness" Value="@(Format(report.Loudness.Lufs, "F1", " LUFS"))" />
+                        <Metric Label="True peak · 4× estimate" Value="@(Format(report.Loudness.TruePeak, "F1", " dBTP"))" />
+                        <Metric Label="PLR" Value="@(Format(report.Loudness.Plr, "F1", " LU"))" />
+                        <Metric Label="P95–P10 short-term spread · not EBU LRA" Value="@(Format(report.Loudness.ShortTermSpread, "F1", " LU"))" />
+                        <Metric Label="Stereo width" Value="@(Format(report.Stereo.Width, "F2"))" />
+                        <Metric Label="Minimum 3 s correlation" Value="@(Format(report.Stereo.MinimumPhase, "F2"))" />
+                        <Metric Label="Mono fold-down RMS" Value="@(Format(report.Stereo.MonoLoss, "F1", " dB"))" />
+                        <Metric Label="Side below 150 Hz" Value="@(Format(report.Stereo.BassSide, "F1", "%"))" />
+                        <Metric Label="Channel layout" Value="@report.Stereo.ChannelLayout" />
+                        <Metric Label="Sample rate" Value="@(report.Meta.SampleRate.HasValue ? $"{report.Meta.SampleRate} Hz" : "—")" />
+                        <Metric Label="Channels" Value="@(report.Meta.Channels?.ToString() ?? "—")" />
+                        <Metric Label="Duration" Value="@(report.Meta.Duration.HasValue ? TimeSpan.FromSeconds(report.Meta.Duration.Value).ToString(@"mm\:ss") : "—")" />
+                    </div>
+                    <h3 class="subsection-title">Спектральная энергия · 20 Гц–20 кГц</h3>
+                    <div class="band-list">
+                        @foreach (var band in report.Tonal.BandEnergyPct)
+                        {
+                            <div class="band-row"><span>@BandLabel(band.Key)</span><div class="band-track"><i style="@($"width: {BandWidth(band.Value)}%")"></i></div><strong>@band.Value.ToString("F1")%</strong></div>
+                        }
+                    </div>
+                </details>
+
+                <div class="feedback-panel">
+                    <h2>Какой вывод подтвердился?</h2>
+                    <p>Эта обратная связь важнее общего score: она связывает измерение, гипотезу и результат проверки.</p>
+                    <div class="rating-buttons">@for (var score = 1; score <= 5; score++) { var value = score; <button class="@(feedbackRating == value ? "selected" : "")" @onclick="() => feedbackRating = value">@value</button> }</div>
+                    <textarea @bind="feedbackComment" maxlength="1000" placeholder="Например: в mono действительно исчезал reverb return; после bypass проблема пропала."></textarea>
+                    <button class="feedback-submit" @onclick="SaveFeedback" disabled="@(feedbackRating == 0 || feedbackSaved)">@(feedbackSaved ? "Спасибо, сохранено" : "Отправить отзыв")</button>
                 </div>
-            </div>
+            </article>
         }
-    </div>
+    </main>
 </div>
 
 @code {
     [Parameter] public int jobId { get; set; }
-
     private readonly CancellationTokenSource _cts = new();
     private JobStatusModel? status;
     private AnalysisReport? report;
@@ -134,7 +160,6 @@
     private bool feedbackSaved;
 
     protected override void OnInitialized() => _ = PollJobStatus();
-
     private async Task PollJobStatus()
     {
         try
@@ -143,16 +168,8 @@
             while (!_cts.IsCancellationRequested)
             {
                 status = await UploadService.GetJobStatus(jobId);
-                if (status is null)
-                {
-                    error = "Задача не найдена или сессия завершилась.";
-                    break;
-                }
-                if (status.Status == "failed")
-                {
-                    error = "Обработка файла завершилась ошибкой. Проверьте формат и попробуйте снова.";
-                    break;
-                }
+                if (status is null) { error = "Задача не найдена или сессия завершилась."; break; }
+                if (status.Status == "failed") { error = "Обработка файла завершилась ошибкой. Проверьте формат и логи worker."; break; }
                 if (status.Status == "done")
                 {
                     var response = await ReportService.GetReportAsync(jobId);
@@ -169,95 +186,17 @@
             await InvokeAsync(StateHasChanged);
         }
         catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            error = $"Не удалось получить состояние анализа: {ex.Message}";
-            await InvokeAsync(StateHasChanged);
-        }
+        catch (Exception ex) { error = $"Не удалось получить состояние анализа: {ex.Message}"; await InvokeAsync(StateHasChanged); }
     }
 
-    private static string StatusLabel(string? value) => value switch
-    {
-        "pending" => "В очереди",
-        "processing" => "DSP-анализ",
-        "stem-analysis" => "Demucs",
-        "retrying" => "Повтор обработки",
-        _ => value ?? "Запуск"
-    };
-
-    private static string BandLabel(string value) => value.Replace("_", " ");
-
-    private async Task SaveFeedback()
-    {
-        if (feedbackRating == 0) return;
-        feedbackSaved = await ReportService.SaveFeedbackAsync(jobId, feedbackRating, feedbackComment);
-    }
-
-    private static string ComparisonLabel(ReferenceComparison comparison) =>
-        comparison.Source == "references"
-            ? $"Медиана по {comparison.ReferenceCount} референсам."
-            : "Сравнение с предварительным жанровым профилем (fallback).";
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
-    }
-
-    public sealed class AnalysisReport
-    {
-        [JsonPropertyName("meta")] public MetaData Meta { get; set; } = new();
-        [JsonPropertyName("loudness")] public LoudnessData Loudness { get; set; } = new();
-        [JsonPropertyName("tonal")] public TonalData Tonal { get; set; } = new();
-        [JsonPropertyName("stereo")] public StereoData Stereo { get; set; } = new();
-        [JsonPropertyName("rhythm")] public RhythmData Rhythm { get; set; } = new();
-        [JsonPropertyName("reference_comparison")] public ReferenceComparison? ReferenceComparison { get; set; }
-        [JsonPropertyName("stem_analysis")] public StemAnalysisData StemAnalysis { get; set; } = new();
-        [JsonPropertyName("recommendations")] public List<Recommendation> Recommendations { get; set; } = new();
-        [JsonPropertyName("artistic_intent_warning")] public string ArtisticIntentWarning { get; set; } = "Метрики не заменяют слуховую оценку.";
-    }
-
-    public sealed class MetaData { [JsonPropertyName("duration_sec")] public double? Duration { get; set; } }
-    public sealed class LoudnessData
-    {
-        [JsonPropertyName("lufs")] public double? Lufs { get; set; }
-        [JsonPropertyName("true_peak_db")] public double? TruePeak { get; set; }
-        [JsonPropertyName("loudness_range_lu")] public double? LoudnessRange { get; set; }
-    }
-    public sealed class TonalData { [JsonPropertyName("band_energy_db")] public Dictionary<string, double> BandEnergy { get; set; } = new(); }
-    public sealed class StereoData
-    {
-        [JsonPropertyName("stereo_width")] public double? Width { get; set; }
-        [JsonPropertyName("phase_correlation")] public double? Phase { get; set; }
-    }
-    public sealed class RhythmData
-    {
-        [JsonPropertyName("bpm")] public double? Bpm { get; set; }
-        [JsonPropertyName("estimated_key")] public string Key { get; set; } = "—";
-        [JsonPropertyName("estimated_mode")] public string Mode { get; set; } = "";
-    }
-    public sealed class ReferenceComparison
-    {
-        [JsonPropertyName("source")] public string Source { get; set; } = "genre-profile";
-        [JsonPropertyName("reference_count")] public int ReferenceCount { get; set; }
-        [JsonPropertyName("tonal_delta_db")] public Dictionary<string, double> TonalDeltaDb { get; set; } = new();
-    }
-    public sealed class StemAnalysisData
-    {
-        [JsonPropertyName("enabled")] public bool Enabled { get; set; }
-        [JsonPropertyName("stems")] public Dictionary<string, StemMetrics> Stems { get; set; } = new();
-        [JsonPropertyName("disclaimer")] public string Disclaimer { get; set; } = "";
-    }
-    public sealed class StemMetrics
-    {
-        [JsonPropertyName("lufs")] public double? Lufs { get; set; }
-        [JsonPropertyName("true_peak_db")] public double? TruePeak { get; set; }
-    }
-    public sealed class Recommendation
-    {
-        [JsonPropertyName("title")] public string Title { get; set; } = "";
-        [JsonPropertyName("description")] public string Description { get; set; } = "";
-        [JsonPropertyName("advice")] public string Advice { get; set; } = "";
-        [JsonPropertyName("severity")] public string Severity { get; set; } = "info";
-    }
+    private static string StatusLabel(string? value) => value switch { "pending" => "В очереди", "processing" => "Диагностика P0", "retrying" => "Повтор обработки", _ => value ?? "Запуск" };
+    private static string Format(double? value, string format, string suffix = "") => value.HasValue ? value.Value.ToString(format) + suffix : "—";
+    private static string Signed(double value, string format) => (value >= 0 ? "+" : "") + value.ToString(format);
+    private static string BandWidth(double value) => Math.Clamp(value, 0.5, 100).ToString("F2", CultureInfo.InvariantCulture);
+    private static string BandLabel(string value) => value switch { "sub_bass" => "Sub bass · 20–60 Hz", "bass" => "Bass · 60–250 Hz", "low_mid" => "Low mid · 250–500 Hz", "mid" => "Mid · 0.5–2 kHz", "upper_mid" => "Upper mid · 2–6 kHz", "presence" => "Presence · 6–10 kHz", "air" => "Air · 10–20 kHz", _ => value };
+    private static string DimensionLabel(string value) => value switch { "plr" => "PLR", "short_term_loudness_spread" => "P95–P10 spread", "crest_factor" => "Crest factor", "width" => "Stereo width", "phase_correlation" => "L/R correlation", "mono_fold_down" => "Mono fold-down", "bass_side_energy" => "Low-end Side", _ => value };
+    private static string Support(DifferenceDimension value) => $"{value.SupportCount}/{value.ReferenceCount} · {ReliabilityLabel(value.Reliability)}";
+    private static string ReliabilityLabel(string value) => value switch { "HIGH" => "высокая надёжность", "MEDIUM" => "средняя надёжность", _ => "низкая надёжность" };
+    private async Task SaveFeedback() { if (feedbackRating > 0) feedbackSaved = await ReportService.SaveFeedbackAsync(jobId, feedbackRating, feedbackComment); }
+    public void Dispose() { _cts.Cancel(); _cts.Dispose(); }
 }
