@@ -1,0 +1,48 @@
+@using SoundDebug.Frontend.Models
+@using System.Globalization
+
+<section class="timeline-panel">
+    <div class="timeline-heading">
+        <div><span class="eyebrow">P1 TEMPORAL DEBUGGER</span><h2>Где слушать внимательнее</h2></div>
+        <span class="region-count">@Data.RegionCount regions</span>
+    </div>
+    <p>Маркеры показывают объединённые участки, где несколько окон отличаются от соседей или распределения референсов. Это точки проверки, а не ошибки.</p>
+    <div class="waveform" aria-label="Waveform overview">
+        @foreach (var point in Data.Waveform)
+        {
+            <i style="@($"height:{WaveHeight(point.Peak)}%")"></i>
+        }
+        @foreach (var region in Data.Regions.OrderByDescending(item => item.Score))
+        {
+            <button type="button" class="region-marker @region.Category @Reliability(region.Reliability)"
+               style="@MarkerStyle(region)" title="@MarkerTitle(region)" @onclick="() => RegionSelected.InvokeAsync(region.Id)">
+                <span>@TimeRange(region)</span>
+            </button>
+        }
+    </div>
+    <div class="timeline-scale"><span>00:00</span><span>@TimeLabel(Duration)</span></div>
+    <div class="timeline-legend">
+        @foreach (var category in Data.Regions.Select(item => item.Category).Distinct())
+        {
+            <span class="@category"><i></i>@CategoryLabel(category)</span>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public TemporalAnalysis Data { get; set; } = new();
+    [Parameter, EditorRequired] public double Duration { get; set; }
+    [Parameter] public EventCallback<string> RegionSelected { get; set; }
+    private string MarkerStyle(TemporalRegion region)
+    {
+        var left = Duration > 0 ? 100 * region.Start / Duration : 0;
+        var width = Duration > 0 ? 100 * Math.Max(region.End - region.Start, 1) / Duration : 1;
+        return $"left:{left.ToString("F3", CultureInfo.InvariantCulture)}%;width:{Math.Max(width, 1.2).ToString("F3", CultureInfo.InvariantCulture)}%";
+    }
+    private static string WaveHeight(double value) => Math.Clamp(value * 100, 3, 100).ToString("F2", CultureInfo.InvariantCulture);
+    private static string Reliability(string value) => value.ToLowerInvariant();
+    private static string TimeLabel(double seconds) => TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
+    private static string TimeRange(TemporalRegion value) => $"{TimeLabel(value.Start)}–{TimeLabel(value.End)}";
+    private static string CategoryLabel(string value) => value switch { "phase" => "Phase/mono", "stereo" => "Stereo", "tonal" => "Tonal", "loudness" => "Loudness", "dynamics" => "Dynamics", "spectral" => "Spectral", _ => value };
+    private static string MarkerTitle(TemporalRegion value) => $"{CategoryLabel(value.Category)} · {TimeRange(value)} · {value.MetricCount} metrics · {value.Reliability.ToLowerInvariant()} reliability";
+}

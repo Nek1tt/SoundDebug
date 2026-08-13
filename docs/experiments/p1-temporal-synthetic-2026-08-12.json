@@ -1,0 +1,116 @@
+{
+  "suite": "p1-temporal-synthetic",
+  "checks": {
+    "stationary_has_no_regions": true,
+    "overlapping_phase_windows_merge": true,
+    "phase_has_multiple_metrics": true,
+    "stable_comparison_is_attached": true,
+    "stable_comparison_does_not_overlap": true,
+    "three_references_support_tonal_region": true,
+    "unanimous_reference_region_is_high_reliability": true
+  },
+  "phase_region": {
+    "category": "phase",
+    "start_sec": 7.5,
+    "end_sec": 16.5,
+    "duration_sec": 9.0,
+    "score": 10.206,
+    "reliability": "MEDIUM",
+    "confirming_metric_count": 2,
+    "reference_support": 0,
+    "reference_count": 0,
+    "reference_support_ratio": null,
+    "ranking": {
+      "magnitude": 3.85,
+      "duration_sec": 9.0,
+      "confirming_metric_count": 2,
+      "reference_stability": "MEDIUM"
+    },
+    "evidence": [
+      {
+        "feature": "phase_correlation",
+        "category": "phase",
+        "value": -0.45,
+        "unit": "correlation",
+        "local_baseline": 0.75,
+        "local_delta": -1.2,
+        "magnitude": 4.8,
+        "reference_delta": null,
+        "reference_support": 0,
+        "reference_count": 0,
+        "reference_reliability": "NONE"
+      },
+      {
+        "feature": "mono_fold_down_loss_db",
+        "category": "phase",
+        "value": -3.2,
+        "unit": "dB",
+        "local_baseline": -0.3,
+        "local_delta": -2.9,
+        "magnitude": 2.9,
+        "reference_delta": null,
+        "reference_support": 0,
+        "reference_count": 0,
+        "reference_reliability": "NONE"
+      }
+    ],
+    "window_indices": [
+      5,
+      6,
+      7
+    ],
+    "id": "region-001",
+    "finding_id": "TEMPORAL_PHASE_001",
+    "comparison_region": {
+      "start_sec": 1.5,
+      "end_sec": 7.5,
+      "reason": "nearest window without a ranked anomaly"
+    }
+  },
+  "tonal_region": {
+    "category": "tonal",
+    "start_sec": 12.0,
+    "end_sec": 22.5,
+    "duration_sec": 10.5,
+    "score": 7.255,
+    "reliability": "HIGH",
+    "confirming_metric_count": 1,
+    "reference_support": 3,
+    "reference_count": 3,
+    "reference_support_ratio": 1.0,
+    "ranking": {
+      "magnitude": 2.4,
+      "duration_sec": 10.5,
+      "confirming_metric_count": 1,
+      "reference_stability": "HIGH"
+    },
+    "evidence": [
+      {
+        "feature": "band:low_mid",
+        "category": "tonal",
+        "value": 7.0,
+        "unit": "dB",
+        "local_baseline": 1.0,
+        "local_delta": 6.0,
+        "magnitude": 2.4,
+        "reference_delta": 6.0,
+        "reference_support": 3,
+        "reference_count": 3,
+        "reference_reliability": "HIGH"
+      }
+    ],
+    "window_indices": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "id": "region-001",
+    "finding_id": "TEMPORAL_TONAL_001",
+    "comparison_region": {
+      "start_sec": 6.0,
+      "end_sec": 12.0,
+      "reason": "nearest window without a ranked anomaly"
+    }
+  }
+}

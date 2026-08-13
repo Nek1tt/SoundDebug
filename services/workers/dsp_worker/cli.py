@@ -9,6 +9,7 @@ from pathlib import Path
 from .analyzer import analyze
 from .audio_ml import analyse_audio_ml
 from .report_builder import build_report
+from .temporal_analysis import detect_temporal_regions
 from services.workers.reference_worker.curve_matcher import compare_to_genre, compare_to_references
 
 
@@ -24,10 +25,14 @@ def main() -> int:
     metrics = analyze(args.track)
     reference_metrics = [analyze(path, include_rhythm=False) for path in args.reference]
     comparison = compare_to_references(metrics, reference_metrics) or compare_to_genre(metrics, args.genre)
+    temporal_regions = detect_temporal_regions(
+        metrics["temporal"], [item["temporal"] for item in reference_metrics]
+    )
     audio_ml = analyse_audio_ml(args.track, requested=args.audio_ml)
     report = build_report(
         metrics, args.genre, comparison, audio_ml,
         uses_user_references=bool(args.reference),
+        temporal_regions=temporal_regions,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -35,7 +40,7 @@ def main() -> int:
     print(
         f"Main recommendations: {len(report['recommendations'])}; "
         f"additional findings: {len(report['additional_findings'])}; "
-        f"references: {len(args.reference)}; Audio ML: {audio_ml.get('enabled')}"
+        f"references: {len(args.reference)}; regions: {len(temporal_regions)}; Audio ML: {audio_ml.get('enabled')}"
     )
     return 0
 

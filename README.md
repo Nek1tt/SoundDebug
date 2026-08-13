@@ -1,114 +1,123 @@
-# SoundDebug MVP — P0 trustworthy diagnostics
+# SoundDebug P1 — Temporal Audio Debugger
 
-Current diagnostic contract: **P0 — Trustworthy Diagnostic Engine**. See [docs/P0_TRUSTWORTHY_DIAGNOSTICS.md](docs/P0_TRUSTWORTHY_DIAGNOSTICS.md) for finding classes, reference reliability, launch scripts, and verification.
+SoundDebug analyses a finished mix and answers two separate questions:
 
-SoundDebug analyses a finished mix and separates three different things:
+1. What is measured, and how reliable is the conclusion?
+2. Where in the track should the user listen more carefully, and why?
 
-1. **Measurements** — loudness, true-peak estimate, dynamics, spectral energy and stereo/mono compatibility.
-2. **Comparison** — robust differences from 1–3 user references after level-independent normalisation.
-3. **Diagnostics** — classified facts, reference differences and testable hypotheses with evidence, textual reliability and an ordered DAW check.
+P1 preserves the P0 `FACT`, `REFERENCE_DIFFERENCE`, and `HYPOTHESIS` contract and adds a temporal pipeline. It does not infer verse/chorus/drop labels and never converts a measured delta into an EQ, compressor, gain, or stereo-width setting.
 
-A spectral delta is not copied into an EQ gain. Genre is context, not a mandatory LUFS target. Demucs is outside this release.
+## Requirements
 
-## First launch
+Only Docker Desktop (or Docker Engine) with Compose v2 is required. Do not install Python or .NET on the host.
 
-Requirements: Docker Desktop / Docker Engine with Compose v2, 6 GB RAM and 5 GB free disk space.
+Recommended resources: 6 GB RAM and 5 GB free disk space.
 
-### Windows PowerShell
+## Clean Windows launch
+
+Keep the existing `.env` if P0 already uses a PostgreSQL volume. Do not run `docker compose down -v` unless you intentionally want to delete users and reports.
 
 ```powershell
+cd C:\SoundDebug
 Set-ExecutionPolicy -Scope Process Bypass
-./scripts/setup.ps1
-./scripts/start-p0.ps1
-./scripts/smoke-test.ps1
-python -m pip install -r requirements-dev.txt
-python ./tests/test_api.py
+
+./scripts/start-p1.ps1
 ```
 
-### Linux / macOS
+The script performs Docker registry preflight, creates `.env` only when it is absent, builds every image, starts the stack, checks the Celery worker and waits for HTTP health.
 
-```bash
-chmod +x scripts/*.sh
-./scripts/setup.sh
-./scripts/start-p0.sh
-./scripts/smoke-test.sh
-python3 -m pip install -r requirements-dev.txt
-python3 ./tests/test_api.py
+Open <http://localhost:8080> or the `PUBLIC_PORT` configured in `.env`.
+
+### If Docker Desktop currently has no DNS/network access
+
+Run the preflight alone:
+
+```powershell
+./scripts/docker-preflight.ps1
 ```
 
-Open <http://localhost:8080> (or `PUBLIC_PORT` from `.env`).
+If it cannot pull `python`, `nginx`, or the .NET SDK image, fix Docker Desktop DNS/proxy and restart Docker Desktop. This failure happens before SoundDebug code is built.
 
-## Recommended analysis flow
+If all required base images are already cached from P0, an offline build can be attempted without registry access:
 
-1. Upload a WAV, MP3, FLAC, OGG or M4A mix (up to 50 MB / 15 minutes).
-2. Select a genre for report context.
-3. Preferably add 1–3 references that represent the intended sound.
-4. Read technical faults first, then reference observations.
-5. Audition the indicated timestamps with loudness-matched A/B in the DAW.
-6. Change one thing, export again and compare the reports.
+```powershell
+./scripts/start-p1.ps1 -Offline
+```
 
-Without references SoundDebug still detects technical delivery and mono-compatibility risks, but does not issue tonal EQ advice. Uploaded audio is deleted after processing; derived report data remains in PostgreSQL.
+Offline mode fails clearly when even one required image is missing.
 
-## What the metrics mean
+## Full Docker-only verification
 
-| Metric | Meaning | Does not prove |
-|---|---|---|
-| Integrated LUFS | Gated perceived programme loudness | Correct genre loudness |
-| True peak estimate | 4× oversampled maximum, per channel | Certified conformance of a delivery file |
-| PLR | Difference between true peak and integrated loudness | Overcompression by itself |
-| P95–P10 short-term spread | Gated spread of 3 s short-term values; explicitly not certified EBU LRA | Whether the arrangement is expressive |
-| Band energy % | Share of 20 Hz–20 kHz analysed power | Required EQ gain |
-| Reference delta | Centred log-ratio vs median/MAD of references | A mastering instruction |
-| L/R correlation | Similarity of channels over time | Stereo quality by itself |
-| Mono fold-down loss | RMS change when L/R are folded to mono | Audibility without listening |
+```powershell
+./scripts/verify-p1.ps1
+```
+
+This command uses containers for every check. It verifies:
+
+- registry access or the explicit offline cache;
+- all six project image builds;
+- Compose startup and service health;
+- database migration exit code;
+- Celery worker queue connectivity;
+- Python unit and synthetic DSP tests inside the worker image;
+- registration, login, upload, processing, P1 report retrieval, feedback, and deletion through the public API;
+- a real generated 20-second stereo WAV containing a local phase problem;
+- temporal windows, a merged region, linked diagnostic card, and `where_to_listen` procedure.
+
+Use cached images when Docker has no network:
+
+```powershell
+./scripts/verify-p1.ps1 -Offline
+```
+
+Use `-NoCache` only when debugging a suspected stale build; it is not required for a normal update.
+
+## P1 analysis contract
+
+- Window: 6 seconds.
+- Hop: 1.5 seconds.
+- Per-window features: loudness, RMS, crest factor, dynamics spread, transient density, spectral centroid/rolloff/flatness/bandwidth, seven relative tonal bands, Mid/Side energy, stereo width, phase correlation, mono fold-down loss, and low-frequency Side energy.
+- Local evidence: robust comparison with surrounding windows.
+- Reference evidence: every reference is one independent vote against its own temporal distribution.
+- Adjacent overlapping detections of the same category are merged before reporting.
+- Ranking uses magnitude, duration, confirming metrics, and reference stability.
+- A public region always has a linked diagnostic card.
+- The comparison region never overlaps the anomalous region.
+- The main report remains limited to three priority cards; the rest remain available as additional findings.
+
+## Timeline workflow
+
+1. Upload a mix and optionally up to three references.
+2. Open the report timeline.
+3. Click a marker to show its linked diagnostic card immediately.
+4. Follow `Где слушать`: audition the region in stereo, then mono when relevant, and compare it with the nearest non-overlapping stable region.
+5. Find the first source or bus where the change appears by bypassing one stage at a time.
+6. Export a short revision, loudness-match it, and repeat the A/B comparison.
+
+The waveform shown in the report is a derived envelope. The source file and reference uploads remain transient and are deleted after processing.
 
 ## Analyse a file without the website
 
-The base command writes `analysis-output/report.json`:
+The CLI also runs inside Docker:
 
 ```powershell
-./scripts/analyze.ps1 -Track "C:\music\mix.wav" -Genre techno
-./scripts/analyze.ps1 -Track "C:\music\mix.wav" -Genre techno `
-  -Reference "C:\music\ref-1.wav","C:\music\ref-2.wav"
+./scripts/analyze.ps1 `
+  -Track "C:\Music\mix.wav" `
+  -Genre techno `
+  -Reference "C:\Music\ref-1.wav","C:\Music\ref-2.wav","C:\Music\ref-3.wav"
 ```
 
-```bash
-./scripts/analyze.sh ./mix.wav techno ./ref-1.wav ./ref-2.wav
-```
-
-## Optional Audio ML beta
-
-The extended worker integrates Meta Audiobox Aesthetics. Only `Production Quality` is surfaced as an uncalibrated secondary signal; it never creates a technical verdict or invented confidence.
-
-```powershell
-./scripts/start-audio-ml.ps1
-```
-
-or for one local experiment:
-
-```powershell
-./scripts/analyze.ps1 -Track "C:\music\mix.wav" -Genre electronic -AudioML
-```
-
-The first build/model download is large. The deterministic DSP image remains the default.
+The report is written to `analysis-output/report.json`.
 
 ## Architecture
 
 ```text
 Browser -> Nginx/Blazor -> Gateway -> Auth / Upload / Report
-                                Upload -> Redis -> DSP v2 worker
-                                          Worker -> Report
+                                Upload -> Redis -> DSP P1 worker
+                                          Worker -> PostgreSQL report
+                                Audio -> MinIO -> deleted after processing
 ```
 
-Only the frontend port is public. PostgreSQL, Redis, MinIO and backend services remain inside the Compose network.
+Only the frontend port is public. PostgreSQL, Redis, MinIO, and backend services stay inside the Compose network.
 
-## Verification
-
-```bash
-python -m unittest discover -s tests -p "test_*.py" -v
-python experiments/run_dsp_v2_synthetic.py
-docker compose config --quiet
-./scripts/verify-p0.sh
-```
-
-Research decisions are documented in [docs/RESEARCH_2026.md](docs/RESEARCH_2026.md), experiment results in [docs/EXPERIMENT_LOG.md](docs/EXPERIMENT_LOG.md), and release scope in [docs/RELEASE_MAP.md](docs/RELEASE_MAP.md).
+Implementation details are in [docs/P1_TEMPORAL_DEBUGGER.md](docs/P1_TEMPORAL_DEBUGGER.md). The P0 semantic guarantees remain documented in [docs/P0_TRUSTWORTHY_DIAGNOSTICS.md](docs/P0_TRUSTWORTHY_DIAGNOSTICS.md).

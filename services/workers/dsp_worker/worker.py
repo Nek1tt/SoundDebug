@@ -43,6 +43,7 @@ from shared.storage.s3_client import delete_file, get_minio_client
 from .analyzer import analyze
 from .audio_ml import analyse_audio_ml
 from .report_builder import build_report
+from .temporal_analysis import detect_temporal_regions
 from services.workers.reference_worker.curve_matcher import compare_to_genre, compare_to_references
 
 logger = logging.getLogger(__name__)
@@ -177,6 +178,9 @@ def analyze_track(
                 compare_to_references(dsp_metrics, reference_metrics)
                 or compare_to_genre(dsp_metrics, genre)
             )
+            temporal_regions = detect_temporal_regions(
+                dsp_metrics["temporal"], [item["temporal"] for item in reference_metrics]
+            )
             _set_progress(job_id, 70)
 
             # ``stem_analysis`` is accepted only so queued v1 jobs fail safely.
@@ -190,6 +194,7 @@ def analyze_track(
         full_report = build_report(
             dsp_metrics, genre, reference_comparison, audio_ml,
             uses_user_references=bool(reference_keys),
+            temporal_regions=temporal_regions,
         )
         _set_progress(job_id, 92)
 

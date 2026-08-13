@@ -1,6 +1,6 @@
 @using SoundDebug.Frontend.Models
 
-<section class="diagnostic-card @Finding.Severity">
+<section id="@Finding.Id" class="diagnostic-card @Finding.Severity @(Selected ? "selected-region" : "")">
     <div class="diagnostic-meta">
         <span class="class-tag @Finding.Classification.ToLowerInvariant()">@ClassLabel(Finding.Classification)</span>
         <span class="priority-tag">Приоритет: @PriorityLabel(Finding.Priority)</span>
@@ -14,7 +14,11 @@
     {
         <div class="diagnostic-section"><h4>Возможные причины</h4><ul>@foreach (var cause in Finding.PossibleCauses) { <li>@cause</li> }</ul></div>
     }
-    @if (Finding.Timestamps.Count > 0)
+    @if (Finding.WhereToListen.Count > 0)
+    {
+        <div class="diagnostic-section listen-places"><h4>Где слушать</h4><ol>@foreach (var step in Finding.WhereToListen) { <li>@step</li> }</ol></div>
+    }
+    else if (Finding.Timestamps.Count > 0)
     {
         <div class="listen-places"><strong>Где проверить:</strong> @string.Join(", ", Finding.Timestamps.Select(TimeLabel))</div>
     }
@@ -29,6 +33,7 @@
 
 @code {
     [Parameter, EditorRequired] public DiagnosticFinding Finding { get; set; } = new();
+    [Parameter] public bool Selected { get; set; }
     private static string TimeLabel(double seconds) => TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
     private static string ClassLabel(string value) => value switch { "FACT" => "Факт", "REFERENCE_DIFFERENCE" => "Отличие от референсов", _ => "Гипотеза" };
     private static string PriorityLabel(string value) => value switch { "CRITICAL" => "критический", "HIGH" => "высокий", "MEDIUM" => "средний", _ => "низкий" };

@@ -8,6 +8,7 @@ import numpy as np
 import soundfile as sf
 
 from services.workers.dsp_worker.analyzer import _stereo_metrics, _tonal_metrics, analyze
+from services.workers.dsp_worker.temporal_analysis import detect_temporal_regions
 
 
 class DspV2Tests(unittest.TestCase):
@@ -29,13 +30,18 @@ class DspV2Tests(unittest.TestCase):
         cls.temp.cleanup()
 
     def test_v2_contract(self):
-        self.assertEqual(self.result["meta"]["analysis_version"], "dsp-v2")
+        self.assertEqual(self.result["meta"]["analysis_version"], "dsp-v3-temporal")
         self.assertEqual(self.result["tonal"]["representation"], "power-share-and-centred-log-ratio-v2")
         self.assertIn("loudness_timeline", self.result["loudness"])
         self.assertIn("short_term_loudness_spread_lu", self.result["loudness"])
         self.assertNotIn("loudness_range_lu", self.result["loudness"])
         self.assertIn("mono_fold_down_loss_db", self.result["stereo"])
         self.assertIn("key_confidence", self.result["rhythm"])
+        self.assertIn("temporal", self.result)
+        self.assertGreater(len(self.result["temporal"]["windows"]), 1)
+        first = self.result["temporal"]["windows"][0]
+        for key in ("loudness_lufs", "crest_factor_db", "transient_density_hz", "band_balance_db", "mid_energy_pct", "side_energy_pct", "stereo_width", "phase_correlation", "mono_fold_down_loss_db"):
+            self.assertIn(key, first)
 
     def test_band_shares_are_percentages(self):
         shares = self.result["tonal"]["band_energy_pct"]
@@ -67,6 +73,22 @@ class DspV2Tests(unittest.TestCase):
         result = _stereo_metrics(mono, np.vstack((mono, mono)), self.sr)
         self.assertTrue(result["is_mono"])
         self.assertEqual(result["channel_layout"], "dual-mono")
+
+    def test_real_window_pipeline_localises_phase_region(self):
+        seconds = 20
+        t = np.arange(self.sr * seconds) / self.sr
+        left = 0.16 * np.sin(2 * np.pi * 220 * t) + 0.04 * np.sin(2 * np.pi * 880 * t)
+        right = left.copy()
+        right[self.sr * 8 : self.sr * 12] *= -0.85
+        path = Path(self.temp.name) / "local-phase.wav"
+        sf.write(path, np.column_stack((left, right)), self.sr, subtype="FLOAT")
+        metrics = analyze(path, include_rhythm=False)
+        regions = detect_temporal_regions(metrics["temporal"])
+        phase = [item for item in regions if item["category"] == "phase"]
+        self.assertTrue(phase)
+        self.assertLessEqual(phase[0]["start_sec"], 12.0)
+        self.assertGreaterEqual(phase[0]["end_sec"], 8.0)
+        self.assertGreaterEqual(phase[0]["confirming_metric_count"], 2)
 
 
 if __name__ == "__main__":

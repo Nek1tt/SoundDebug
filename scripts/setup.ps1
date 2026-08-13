@@ -26,4 +26,7 @@ if (-not (Test-Path ".env")) {
 }
 
 docker compose config --quiet
+if ($LASTEXITCODE -ne 0) {
+    throw "docker compose config failed. Check .env and docker-compose.yml."
+}
 Write-Host "Configuration is valid."

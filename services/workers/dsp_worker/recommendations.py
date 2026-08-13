@@ -52,6 +52,8 @@ def _card(
     evidence: list[str],
     timestamps: list[float] | None = None,
     reference_context: str | None = None,
+    where_to_listen: list[str] | None = None,
+    region_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     if classification not in {FACT, REFERENCE_DIFFERENCE, HYPOTHESIS}:
         raise ValueError(f"Unsupported finding class: {classification}")
@@ -73,7 +75,83 @@ def _card(
         "reference_context": reference_context,
         "evidence": evidence,
         "timestamps_sec": timestamps or [],
+        "where_to_listen": where_to_listen or [],
+        "region_ids": region_ids or [],
     }
+
+
+def _clock(seconds: float) -> str:
+    minutes, rest = divmod(max(0, int(round(seconds))), 60)
+    return f"{minutes:02d}:{rest:02d}"
+
+
+def _temporal_findings(regions: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """Turn ranked regions into audition procedures, not corrective settings."""
+    if not regions:
+        return []
+    labels = {
+        "phase": ("Проверьте локальную mono-совместимость", "stereo", "В stereo участок может казаться шире, а в mono отдельные слои могут ослабнуть или изменить тембр."),
+        "stereo": ("Проверьте локальное изменение stereo field", "stereo", "Ширина или положение краевых слоёв могут заметно отличаться от окружающих частей."),
+        "tonal": ("Проверьте локальное изменение tonal balance", "tonal_balance", "Участок может восприниматься плотнее, тоньше, темнее или ярче, но это может быть частью аранжировки."),
+        "loudness": ("Проверьте локальный скачок воспринимаемой громкости", "loudness", "Переход может ощущаться несоразмерно громким или тихим относительно соседних частей."),
+        "dynamics": ("Проверьте локальное изменение атак и плотности", "dynamics", "Транзиенты могут стать мягче/жёстче, а участок — заметно плотнее или свободнее."),
+        "spectral": ("Проверьте локальное изменение спектральной текстуры", "spectral", "Изменение brightness/noisiness может быть аранжировочным событием или следствием обработки."),
+    }
+    causes = {
+        "phase": ["stereo delay или widener", "decorrelated reverb return", "polarity mismatch", "противофазный synth layer"],
+        "stereo": ["изменение панорамы или аранжировки", "automation width", "reverb/delay returns", "M/S processing"],
+        "tonal": ["новый инструмент или регистр", "накопление нескольких источников", "reverb tails", "automation EQ/saturation"],
+        "loudness": ["секционная automation", "лимитер или bus compression", "рост плотности аранжировки", "разница master gain"],
+        "dynamics": ["limiter/compressor automation", "изменение transient material", "новый percussion layer", "более плотная аранжировка"],
+        "spectral": ["вход нового слоя", "фильтр/эквалайзер в automation", "изменение distortion", "шумовой или cymbal layer"],
+    }
+    result: list[dict[str, Any]] = []
+    for region in regions[:12]:
+        category = region["category"]
+        if category not in labels:
+            continue
+        start, end = float(region["start_sec"]), float(region["end_sec"])
+        time_range = f"{_clock(start)}–{_clock(end)}"
+        stable = region.get("comparison_region")
+        stable_range = f"{_clock(stable['start_sec'])}–{_clock(stable['end_sec'])}" if stable else None
+        evidence = region.get("evidence", [])
+        evidence_lines = [
+            f"{item['feature']}: {item['value']:+g} {item['unit']} (локальная медиана {item['local_baseline']:+g}, magnitude {item['magnitude']:.1f}× threshold)"
+            for item in evidence[:6]
+        ]
+        strongest = evidence[0] if evidence else {}
+        ref_count = int(region.get("reference_count") or 0)
+        ref_support = int(region.get("reference_support") or 0)
+        reference_context = (
+            f"Направление самого сильного признака поддерживают {ref_support} из {ref_count} референсов. "
+            "Референсы используются как распределение контекста, а не как правильная секция песни."
+            if ref_count else None
+        )
+        listen_steps = [f"Сначала прослушайте {time_range} в stereo на согласованной громкости."]
+        if category in {"phase", "stereo"}:
+            listen_steps.append(f"Затем прослушайте тот же участок в mono и назовите конкретный элемент, который изменился.")
+        if stable_range:
+            listen_steps.append(f"Сравните с ближайшим стабильным участком {stable_range}; слушайте один и тот же признак, а не общую 'приятность'.")
+        title, card_category, audible = labels[category]
+        reliability = str(region.get("reliability", "LOW"))
+        priority = "HIGH" if float(region.get("score", 0)) >= 6.0 and reliability != "LOW" else "MEDIUM"
+        result.append(_card(
+            region["finding_id"], HYPOTHESIS, card_category, f"{title} · {time_range}", priority,
+            reliability,
+            f"Region объединяет {len(region.get('window_indices', []))} перекрывающихся окон; подтверждающих метрик: {region.get('confirming_metric_count', 0)}. Ranking score не является оценкой качества.",
+            f"В {time_range} несколько окон заметно отличаются от соседних частей" + (" и распределения референсов." if ref_support >= 2 else "."),
+            f"SoundDebug объединил соседние срабатывания и поднял region в ranking: strongest evidence — {strongest.get('feature', 'несколько признаков')}; длительность {float(region.get('duration_sec', 0)):.1f} с.",
+            audible,
+            causes[category],
+            [*listen_steps, "Найдите первый source/bus, где изменение появляется, используя solo/bypass по одному этапу.", "Сделайте короткий новый экспорт, loudness-match и повторите A/B до повторного анализа."],
+            "Не переносите величину temporal delta в EQ, compressor, width или gain: она описывает отличие окна, а не требуемую настройку.",
+            evidence=evidence_lines,
+            timestamps=[start, end],
+            reference_context=reference_context,
+            where_to_listen=listen_steps,
+            region_ids=[region["id"]],
+        ))
+    return result
 
 
 def _facts(metrics: dict[str, Any]) -> list[dict[str, Any]]:
@@ -312,10 +390,13 @@ def _audio_ml(audio_ml: dict[str, Any] | None) -> list[dict[str, Any]]:
 
 def generate_findings(
     metrics: dict[str, Any], genre: str | None = None, comparison: dict[str, Any] | None = None,
-    audio_ml: dict[str, Any] | None = None,
+    audio_ml: dict[str, Any] | None = None, temporal_regions: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Return all findings in deterministic priority order; genre is context only."""
-    findings = [*_facts(metrics), *_technical_hypotheses(metrics), *_reference_findings(comparison), *_audio_ml(audio_ml)]
+    temporal = _temporal_findings(temporal_regions)
+    temporal_categories = {item["category"] for item in temporal}
+    technical = [item for item in _technical_hypotheses(metrics) if item["category"] not in temporal_categories]
+    findings = [*_facts(metrics), *temporal, *technical, *_reference_findings(comparison), *_audio_ml(audio_ml)]
     findings.sort(key=lambda item: (
         PRIORITY_ORDER[item["priority"]], CLASS_ORDER[item["classification"]], item["id"],
     ))

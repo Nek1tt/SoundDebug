@@ -24,7 +24,7 @@
                     </svg>
                     <div class="progress-text"><span class="percent">@(status?.Progress ?? 0)%</span><span class="status-label">@StatusLabel(status?.Status)</span></div>
                 </div>
-                <p class="loading-hint">SoundDebug разделяет измерения, reference differences и проверяемые гипотезы.</p>
+                <p class="loading-hint">SoundDebug считает перекрывающиеся окна, объединяет evidence в regions и сохраняет честную семантику P0.</p>
             </section>
         }
         else
@@ -40,6 +40,18 @@
                 </header>
                 <p class="intent-warning">@report.ArtisticIntentWarning</p>
 
+                @if (report.TemporalAnalysis.Regions.Count > 0)
+                {
+                    <TemporalTimeline Data="report.TemporalAnalysis" Duration="@(report.Meta.Duration ?? 0)" RegionSelected="SelectRegion" />
+                }
+                @if (SelectedFinding is not null)
+                {
+                    <section class="selected-region-preview" aria-live="polite">
+                        <h2 class="section-title">Выбранный участок</h2>
+                        <DiagnosticCard Finding="SelectedFinding" Selected="true" />
+                    </section>
+                }
+
                 <h2 class="section-title">Главное: что проверить сначала</h2>
                 <p class="section-lead">Не больше трёх выводов. Приоритет учитывает прямоту измерения, потенциальный риск и устойчивость между референсами.</p>
                 <div class="recommendations-list">
@@ -49,7 +61,7 @@
                     }
                     @foreach (var finding in report.Recommendations)
                     {
-                        <DiagnosticCard Finding="finding" />
+                        <DiagnosticCard Finding="finding" Selected="@(selectedRegion is not null && finding.RegionIds.Contains(selectedRegion))" />
                     }
                 </div>
 
@@ -96,7 +108,7 @@
                         <p>Наблюдения ниже не вошли в первые три по приоритету, но не были отброшены.</p>
                         @foreach (var finding in report.AdditionalFindings)
                         {
-                            <DiagnosticCard Finding="finding" />
+                            <DiagnosticCard Finding="finding" Selected="@(selectedRegion is not null && finding.RegionIds.Contains(selectedRegion))" />
                         }
                     </details>
                 }
@@ -158,6 +170,11 @@
     private int feedbackRating;
     private string feedbackComment = "";
     private bool feedbackSaved;
+    private string? selectedRegion;
+    private DiagnosticFinding? SelectedFinding => report is null || selectedRegion is null
+        ? null
+        : report.Recommendations.Concat(report.AdditionalFindings)
+            .FirstOrDefault(item => item.RegionIds.Contains(selectedRegion));
 
     protected override void OnInitialized() => _ = PollJobStatus();
     private async Task PollJobStatus()
@@ -189,7 +206,8 @@
         catch (Exception ex) { error = $"Не удалось получить состояние анализа: {ex.Message}"; await InvokeAsync(StateHasChanged); }
     }
 
-    private static string StatusLabel(string? value) => value switch { "pending" => "В очереди", "processing" => "Диагностика P0", "retrying" => "Повтор обработки", _ => value ?? "Запуск" };
+    private static string StatusLabel(string? value) => value switch { "pending" => "В очереди", "processing" => "Temporal analysis P1", "retrying" => "Повтор обработки", _ => value ?? "Запуск" };
+    private void SelectRegion(string regionId) => selectedRegion = regionId;
     private static string Format(double? value, string format, string suffix = "") => value.HasValue ? value.Value.ToString(format) + suffix : "—";
     private static string Signed(double value, string format) => (value >= 0 ? "+" : "") + value.ToString(format);
     private static string BandWidth(double value) => Math.Clamp(value, 0.5, 100).ToString("F2", CultureInfo.InvariantCulture);

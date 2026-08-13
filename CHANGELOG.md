@@ -1,5 +1,17 @@
 # Changelog
 
+## P1 — Temporal Audio Debugger (2026-08-12)
+
+- Added synchronized 6-second temporal windows with a 1.5-second hop.
+- Added loudness, dynamics, tonal/spectral, M/S, stereo, phase, mono-loss and transient features per window.
+- Added robust local and per-reference temporal-distribution evidence.
+- Added merging and ranking by magnitude, duration, confirming metrics and reference stability.
+- Added non-overlapping stable comparison regions.
+- Added a derived waveform timeline and immediate marker-to-card selection.
+- Added `Где слушать` procedures without direct plugin settings.
+- Preserved all P0 finding classes and the three-card main-report limit.
+- Added Docker-only preflight, online/offline startup, containerized unit tests and public API E2E verification.
+
 ## P0 — Trustworthy Diagnostic Engine (2026-08-12)
 
 - Added the strict `FACT`, `REFERENCE_DIFFERENCE`, and `HYPOTHESIS` finding classes.

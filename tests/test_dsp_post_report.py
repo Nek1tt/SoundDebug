@@ -84,11 +84,30 @@ class DiagnosticContractTests(unittest.TestCase):
         report = build_report(metrics, "techno", self.comparison(), {"enabled": False}, uses_user_references=True)
         self.assertLessEqual(len(report["recommendations"]), 3)
         self.assertGreater(len(report["additional_findings"]), 0)
-        self.assertEqual(report["report_version"], "p0-trustworthy-diagnostics-1")
+        self.assertEqual(report["report_version"], "p1-temporal-debugger-1")
         self.assertIn("technical_details", report)
         payload = str(report).lower()
         self.assertNotIn("similarity_percent", payload)
         self.assertNotIn("tonal_confidence", payload)
+
+    def test_temporal_region_adds_where_to_listen_and_keeps_three_card_limit(self):
+        regions = [{
+            "id": "region-001", "finding_id": "TEMPORAL_PHASE_001", "category": "phase",
+            "start_sec": 72.0, "end_sec": 79.0, "duration_sec": 7.0, "score": 7.2,
+            "reliability": "HIGH", "confirming_metric_count": 3, "reference_support": 3,
+            "reference_count": 3, "window_indices": [44, 45, 46],
+            "comparison_region": {"start_sec": 62.0, "end_sec": 69.0},
+            "evidence": [{
+                "feature": "phase_correlation", "value": -0.35, "unit": "correlation",
+                "local_baseline": 0.71, "magnitude": 2.8,
+            }],
+        }]
+        report = build_report(self.metrics, "techno", self.comparison(), {"enabled": False}, uses_user_references=True, temporal_regions=regions)
+        finding = next(item for item in report["all_findings"] if item["id"] == "TEMPORAL_PHASE_001")
+        self.assertEqual(finding["region_ids"], ["region-001"])
+        self.assertIn("01:12–01:19", finding["title"])
+        self.assertGreaterEqual(len(finding["where_to_listen"]), 3)
+        self.assertLessEqual(len(report["recommendations"]), 3)
 
     def test_split_never_discards_findings(self):
         findings = [{"id": str(index)} for index in range(7)]

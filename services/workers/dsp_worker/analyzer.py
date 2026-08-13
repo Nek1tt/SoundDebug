@@ -402,6 +402,10 @@ def analyze(path: str | Path, *, include_rhythm: bool = True) -> dict[str, Any]:
         tonal = _tonal_metrics(y_mono, sr)
         stereo = _stereo_metrics(y_mono, y_stereo, sr)
         rhythm = _rhythm_pitch_metrics(y_mono, sr) if include_rhythm else {}
+        # Imported lazily to keep the low-level metric helpers reusable without
+        # a module import cycle.
+        from .temporal_analysis import extract_temporal_features
+        temporal = extract_temporal_features(y_mono, y_stereo, sr)
     except Exception as exc:
         raise RuntimeError(f"DSP computation failed: {exc}") from exc
 
@@ -410,12 +414,13 @@ def analyze(path: str | Path, *, include_rhythm: bool = True) -> dict[str, Any]:
             "duration_sec": round(duration_sec, 2),
             "sample_rate": sr,
             "num_channels": num_channels,
-            "analysis_version": "dsp-v2",
+            "analysis_version": "dsp-v3-temporal",
         },
         "loudness": loudness,
         "tonal": tonal,
         "stereo": stereo,
         "rhythm": rhythm,
+        "temporal": temporal,
     }
     logger.info("[DSP] Done: %s | LUFS=%s | BPM=%s", path.name, loudness["lufs"], rhythm.get("bpm"))
     return result

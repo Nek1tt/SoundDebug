@@ -9,6 +9,7 @@ public sealed class AnalysisReport
     [JsonPropertyName("tonal")] public TonalData Tonal { get; set; } = new();
     [JsonPropertyName("stereo")] public StereoData Stereo { get; set; } = new();
     [JsonPropertyName("rhythm")] public RhythmData Rhythm { get; set; } = new();
+    [JsonPropertyName("temporal_analysis")] public TemporalAnalysis TemporalAnalysis { get; set; } = new();
     [JsonPropertyName("reference_comparison")] public ReferenceComparison? ReferenceComparison { get; set; }
     [JsonPropertyName("audio_ml")] public AudioMlData AudioMl { get; set; } = new();
     [JsonPropertyName("diagnostic_summary")] public DiagnosticSummary Summary { get; set; } = new();
@@ -107,6 +108,7 @@ public sealed class DiagnosticSummary
 
 public sealed class DiagnosticFinding
 {
+    [JsonPropertyName("id")] public string Id { get; set; } = "";
     [JsonPropertyName("classification")] public string Classification { get; set; } = "HYPOTHESIS";
     [JsonPropertyName("title")] public string Title { get; set; } = "";
     [JsonPropertyName("priority")] public string Priority { get; set; } = "LOW";
@@ -122,4 +124,34 @@ public sealed class DiagnosticFinding
     [JsonPropertyName("reference_context")] public string? ReferenceContext { get; set; }
     [JsonPropertyName("evidence")] public List<string> Evidence { get; set; } = new();
     [JsonPropertyName("timestamps_sec")] public List<double> Timestamps { get; set; } = new();
+    [JsonPropertyName("where_to_listen")] public List<string> WhereToListen { get; set; } = new();
+    [JsonPropertyName("region_ids")] public List<string> RegionIds { get; set; } = new();
+}
+
+public sealed class TemporalAnalysis
+{
+    [JsonPropertyName("window_sec")] public double WindowSeconds { get; set; }
+    [JsonPropertyName("hop_sec")] public double HopSeconds { get; set; }
+    [JsonPropertyName("waveform_envelope")] public List<WaveformPoint> Waveform { get; set; } = new();
+    [JsonPropertyName("regions")] public List<TemporalRegion> Regions { get; set; } = new();
+    [JsonPropertyName("region_count")] public int RegionCount { get; set; }
+    [JsonPropertyName("note")] public string Note { get; set; } = "";
+}
+
+public sealed class WaveformPoint
+{
+    [JsonPropertyName("peak")] public double Peak { get; set; }
+    [JsonPropertyName("rms")] public double Rms { get; set; }
+}
+
+public sealed class TemporalRegion
+{
+    [JsonPropertyName("id")] public string Id { get; set; } = "";
+    [JsonPropertyName("finding_id")] public string FindingId { get; set; } = "";
+    [JsonPropertyName("category")] public string Category { get; set; } = "";
+    [JsonPropertyName("start_sec")] public double Start { get; set; }
+    [JsonPropertyName("end_sec")] public double End { get; set; }
+    [JsonPropertyName("score")] public double Score { get; set; }
+    [JsonPropertyName("reliability")] public string Reliability { get; set; } = "LOW";
+    [JsonPropertyName("confirming_metric_count")] public int MetricCount { get; set; }
 }
