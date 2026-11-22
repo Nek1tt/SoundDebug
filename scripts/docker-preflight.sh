@@ -13,7 +13,7 @@ for image in \
   mcr.microsoft.com/dotnet/sdk:8.0-alpine \
   postgres:16-alpine \
   redis:7-alpine \
-  minio/minio:RELEASE.2025-04-22T22-12-26Z
+  golang:1.24-bookworm
 do
   if [ "${SOUNDDEBUG_OFFLINE:-0}" = "1" ]; then
     docker image inspect "$image" >/dev/null 2>&1 || {

@@ -2,6 +2,7 @@
 
 # Web / task queue
 celery[redis]==5.3.6
+kombu==5.5.4
 redis==5.0.4
 httpx==0.27.0
 

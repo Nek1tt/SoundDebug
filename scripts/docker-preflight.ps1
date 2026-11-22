@@ -22,7 +22,7 @@ $images = @(
     "mcr.microsoft.com/dotnet/sdk:8.0-alpine",
     "postgres:16-alpine",
     "redis:7-alpine",
-    "minio/minio:RELEASE.2025-04-22T22-12-26Z"
+    "golang:1.24-bookworm"
 )
 
 foreach ($image in $images) {
