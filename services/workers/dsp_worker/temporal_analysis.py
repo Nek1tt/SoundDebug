@@ -40,7 +40,10 @@ def extract_temporal_features(
 ) -> dict[str, Any]:
     """Build one synchronized feature vector for every overlapping window."""
     import librosa
-    from .analyzer import _band_statistics, _k_weight, _loudness_from_power, _safe_corr, _to_db, _window_starts
+    from .analyzer import (
+        _band_statistics, _fold_down_db, _frame_rms, _k_weight, _loudness_from_power,
+        _mean_channel_spectrum, _safe_corr, _to_db, _window_starts,
+    )
     window_samples = max(1, int(WINDOW_SEC * sr))
     starts = _window_starts(len(y_mono), sr, WINDOW_SEC, HOP_SEC)
     weighted_source = y_stereo.T if y_stereo is not None else y_mono[:, np.newaxis]
@@ -57,14 +60,15 @@ def extract_temporal_features(
         loudness = _loudness_from_power(float(np.sum(np.mean(weighted_chunk * weighted_chunk, axis=0))))
 
         n_fft = min(4096, max(256, 2 ** int(np.floor(np.log2(max(256, len(mono)))))))
-        spectrum = np.abs(librosa.stft(mono, n_fft=n_fft, hop_length=max(64, n_fft // 4))) ** 2
+        source = channels if channels is not None else mono[np.newaxis, :]
+        spectrum = _mean_channel_spectrum(source, n_fft, max(64, n_fft // 4))
         freqs = librosa.fft_frequencies(sr=sr, n_fft=n_fft)
         shares, balance = _band_statistics(np.mean(spectrum, axis=1), freqs)
         magnitude = np.sqrt(spectrum)
 
-        rms = float(np.sqrt(np.mean(np.square(mono, dtype=np.float64))))
-        peak = float(np.max(np.abs(mono)))
-        frame_rms = librosa.feature.rms(y=mono, frame_length=min(2048, len(mono)), hop_length=512)[0]
+        rms = float(np.sqrt(np.mean(np.square(source, dtype=np.float64))))
+        peak = float(np.max(np.abs(source)))
+        frame_rms = _frame_rms(source, min(2048, len(mono)))
         active_db = 20 * np.log10(frame_rms[frame_rms > 1e-7] + EPS)
         dynamics_spread = float(np.percentile(active_db, 90) - np.percentile(active_db, 10)) if len(active_db) >= 4 else 0.0
         onset_env = librosa.onset.onset_strength(y=mono, sr=sr)
@@ -77,10 +81,9 @@ def extract_temporal_features(
             mid, side = (left + right) / 2.0, (left - right) / 2.0
             mid_power = float(np.mean(mid * mid))
             side_power = float(np.mean(side * side))
-            stereo_rms = float(np.sqrt(np.mean((left * left + right * right) / 2.0)))
             width = np.sqrt(side_power) / (np.sqrt(mid_power) + EPS)
             correlation = _safe_corr(left, right)
-            mono_loss = _to_db(np.sqrt(mid_power) / (stereo_rms + EPS))
+            mono_loss = _fold_down_db(np.sqrt(mid_power), rms)
             side_share = 100.0 * side_power / (mid_power + side_power + EPS)
             low_mid = sosfilt(lowpass, mid)
             low_side = sosfilt(lowpass, side)
@@ -108,7 +111,7 @@ def extract_temporal_features(
             "side_energy_pct": _finite(side_share, 2),
             "stereo_width": _finite(width, 4),
             "phase_correlation": _finite(correlation, 4),
-            "mono_fold_down_loss_db": _finite(mono_loss, 2),
+            "mono_fold_down_loss_db": mono_loss,
             "bass_side_energy_pct": _finite(bass_side, 2),
         })
 
@@ -138,7 +141,9 @@ SCALAR_FEATURES: dict[str, tuple[str, float, str]] = {
 }
 
 
-def _value(window: dict[str, Any], feature: str) -> float:
+def _value(window: dict[str, Any], feature: str) -> float | None:
+    if SCALAR_FEATURES.get(feature, (None,))[0] in ("phase", "stereo") and window["mono_fold_down_loss_db"] is None:
+        return None
     if feature.startswith("band:"):
         return float(window["band_balance_db"][feature.split(":", 1)[1]])
     return float(window[feature])
@@ -156,7 +161,7 @@ def _reference_vote(
     distributions: list[tuple[float, float]] = []
     for reference in references:
         windows = reference.get("windows", [])
-        values = [_value(window, feature) for window in windows]
+        values = [v for window in windows if (v := _value(window, feature)) is not None]
         if values:
             centre, scale = _robust(values)
             distributions.append((centre, scale))
@@ -189,7 +194,9 @@ def _signals_for_window(
     result: list[dict[str, Any]] = []
     for feature, (category, minimum, unit) in definitions.items():
         value = _value(target, feature)
-        local_values = [_value(window, feature) for window in neighbours]
+        if value is None:
+            continue
+        local_values = [v for window in neighbours if (v := _value(window, feature)) is not None]
         if len(local_values) < 2:
             continue
         local_centre, local_scale = _robust(local_values)

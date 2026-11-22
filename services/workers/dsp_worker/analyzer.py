@@ -63,7 +63,10 @@ def _oversampled_peak(channel: np.ndarray, sr: int, factor: int = 4) -> float:
         left = max(0, start - overlap)
         right = min(len(channel), start + chunk_size + overlap)
         oversampled = resample_poly(channel[left:right], factor, 1)
-        peak = max(peak, float(np.max(np.abs(oversampled))))
+        # Discard the filter transient at the artificial edges of the overlap.
+        offset = (start - left) * factor
+        size = min(chunk_size, len(channel) - start) * factor
+        peak = max(peak, float(np.max(np.abs(oversampled[offset:offset + size]))))
     return peak
 
 
@@ -79,8 +82,10 @@ def _load_audio(path: str | Path) -> tuple[np.ndarray, np.ndarray | None, int, i
         raise ValueError("audio is empty or contains non-finite samples")
 
     num_channels = int(data.shape[1])
-    if num_channels >= 2:
-        y_stereo = data[:, :2].T
+    if num_channels > 2:
+        raise ValueError(f"Unsupported audio with {num_channels} channels; expected mono or stereo")
+    if num_channels == 2:
+        y_stereo = data.T
         y_mono = np.mean(y_stereo, axis=0)
     else:
         y_stereo = None
@@ -175,6 +180,17 @@ def _contiguous_regions(mask: np.ndarray, sr: int, minimum_sec: float = 0.001) -
     return regions[:50]
 
 
+def _frame_rms(channels: np.ndarray, frame_length: int) -> np.ndarray:
+    per_channel = librosa.feature.rms(y=channels, frame_length=frame_length, hop_length=512)
+    return np.sqrt(np.mean(per_channel[:, 0, :] ** 2, axis=0))
+
+
+def _fold_down_db(mid_rms: float, stereo_rms: float) -> float | None:
+    if stereo_rms <= EPS:
+        return None
+    return round(_to_db(mid_rms / stereo_rms), 2)
+
+
 def _loudness_metrics(y_mono: np.ndarray, y_stereo: np.ndarray | None, sr: int) -> dict[str, Any]:
     meter = pyln.Meter(sr)
     signal = y_stereo.T if y_stereo is not None else y_mono
@@ -191,9 +207,9 @@ def _loudness_metrics(y_mono: np.ndarray, y_stereo: np.ndarray | None, sr: int) 
     true_peak = max(channel_peaks)
     true_peak_db = _to_db(true_peak)
 
-    rms = float(np.sqrt(np.mean(np.square(y_mono, dtype=np.float64))))
+    rms = float(np.sqrt(np.mean(np.square(channels, dtype=np.float64))))
     rms_db = _to_db(rms)
-    frame_rms = librosa.feature.rms(y=y_mono, frame_length=2048, hop_length=512)[0]
+    frame_rms = _frame_rms(channels, 2048)
     active_db = 20.0 * np.log10(frame_rms[frame_rms > 1e-7] + EPS)
     dynamic_range = (
         float(np.percentile(active_db, 95) - np.percentile(active_db, 10))
@@ -248,10 +264,22 @@ def _band_statistics(power: np.ndarray, freqs: np.ndarray) -> tuple[dict[str, fl
     return shares, balance
 
 
-def _tonal_metrics(y_mono: np.ndarray, sr: int) -> dict[str, Any]:
+def _mean_channel_spectrum(channels: np.ndarray, n_fft: int, hop: int) -> np.ndarray:
+    # Average powers after the transform so opposite polarities cannot cancel.
+    def power(channel: np.ndarray) -> np.ndarray:
+        return np.abs(librosa.stft(channel, n_fft=n_fft, hop_length=hop)) ** 2
+
+    spectrum = power(channels[0])
+    for channel in channels[1:]:
+        spectrum += power(channel)
+    spectrum /= len(channels)
+    return spectrum
+
+
+def _tonal_metrics(signal: np.ndarray, sr: int) -> dict[str, Any]:
     n_fft = 4096
     hop = 1024
-    spectrum = np.abs(librosa.stft(y_mono, n_fft=n_fft, hop_length=hop)) ** 2
+    spectrum = _mean_channel_spectrum(np.atleast_2d(signal), n_fft, hop)
     freqs = librosa.fft_frequencies(sr=sr, n_fft=n_fft)
     mean_power = np.mean(spectrum, axis=1)
     shares, balance = _band_statistics(mean_power, freqs)
@@ -315,7 +343,7 @@ def _stereo_metrics(y_mono: np.ndarray, y_stereo: np.ndarray | None, sr: int) ->
     mid_rms = float(np.sqrt(np.mean(mid * mid)))
     side_rms = float(np.sqrt(np.mean(side * side)))
     stereo_rms = float(np.sqrt(np.mean((left * left + right * right) / 2.0)))
-    mono_loss = _to_db(mid_rms / (stereo_rms + EPS))
+    mono_loss = _fold_down_db(mid_rms, stereo_rms)
 
     cutoff = min(150.0, sr * 0.45)
     sos = butter(4, cutoff, btype="lowpass", fs=sr, output="sos")
@@ -339,7 +367,7 @@ def _stereo_metrics(y_mono: np.ndarray, y_stereo: np.ndarray | None, sr: int) ->
         "stereo_width": round(side_rms / (mid_rms + EPS), 4),
         "phase_correlation": round(_safe_corr(left, right), 4),
         "minimum_phase_correlation": round(min(p["correlation"] for p in phase_timeline), 4),
-        "mono_fold_down_loss_db": round(mono_loss, 2),
+        "mono_fold_down_loss_db": mono_loss,
         "bass_side_energy_pct": round(bass_side_pct, 2),
         "phase_timeline": phase_timeline,
         "phase_risk_segments": risky[:20],
@@ -399,7 +427,7 @@ def analyze(path: str | Path, *, include_rhythm: bool = True) -> dict[str, Any]:
 
     try:
         loudness = _loudness_metrics(y_mono, y_stereo, sr)
-        tonal = _tonal_metrics(y_mono, sr)
+        tonal = _tonal_metrics(y_stereo if y_stereo is not None else y_mono, sr)
         stereo = _stereo_metrics(y_mono, y_stereo, sr)
         rhythm = _rhythm_pitch_metrics(y_mono, sr) if include_rhythm else {}
         # Imported lazily to keep the low-level metric helpers reusable without

@@ -164,15 +164,15 @@ def _facts(metrics: dict[str, Any]) -> list[dict[str, Any]]:
     if count:
         events = loudness.get("clipping_events", [])
         result.append(_card(
-            "FACT_SAMPLE_CLIPPING", FACT, "technical", "В файле найдены отсечённые сэмплы", "CRITICAL",
+            "FACT_SAMPLE_CLIPPING", FACT, "technical", "Пики достигли порога 0.999 FS", "MEDIUM",
             "DIRECT", "Состояние непосредственно измерено в декодированном waveform.",
-            f"{count} сэмплов достигли порога 0.999 FS; они объединены в {len(events)} участков.",
-            "Плоская вершина waveform может быть уже записана в экспорт и не восстанавливается уменьшением громкости готового файла.",
-            "Иногда это слышно как жёсткий щелчок или искажение транзиента; иногда отдельные сэмплы остаются неслышимыми.",
-            ["перегруз до master fader", "жёсткий limiter/clipper", "ошибка gain staging или экспорта"],
-            ["Откройте перечисленные места на sample level.", "Сравните waveform до и после limiter/clipper.", "Сделайте новый экспорт с запасом и проверьте, исчезло ли отсечение.", "Сравните версии на одинаковой воспринимаемой громкости."],
-            "Не уменьшайте master fader после уже перегруженной цепи и не считайте, что это восстановит форму волны.",
-            evidence=[f"samples >= 0.999 FS: {count}", f"regions: {len(events)}"],
+            f"В {count} временных позициях модуль сигнала хотя бы в одном канале достиг 0.999 FS.",
+            "Измерение показывает малый запас до полной шкалы.",
+            "Чистый сигнал также может иметь такие пики.",
+            ["высокий уровень исходного сигнала", "ограничение пиков в цепи обработки"],
+            ["Проверьте форму пиков при посэмпловом увеличении.", "При необходимости сравните сигнал до и после лимитера."],
+            "Для вывода об отсечении требуется дополнительная проверка формы сигнала.",
+            evidence=[f"sample positions >= 0.999 FS: {count}", f"reported runs >= 1 ms: {len(events)}"],
             timestamps=[float(item["start_sec"]) for item in events[:8]],
         ))
 
@@ -240,9 +240,9 @@ def _technical_hypotheses(metrics: dict[str, Any]) -> list[dict[str, Any]]:
         ))
 
     minimum = float(stereo.get("minimum_phase_correlation", 1.0))
-    mono_loss = float(stereo.get("mono_fold_down_loss_db", 0.0))
+    mono_loss = stereo.get("mono_fold_down_loss_db", 0.0)
     risks = stereo.get("phase_risk_segments", [])
-    if minimum < 0.0 or mono_loss < MONO_LOSS_LIMIT_DB:
+    if mono_loss is not None and (minimum < 0.0 or mono_loss < MONO_LOSS_LIMIT_DB):
         result.append(_card(
             "HYP_MONO_CANCELLATION", HYPOTHESIS, "stereo", "Проверьте потерю элементов в mono", "HIGH",
             "HIGH" if minimum < -0.2 else "MEDIUM", "Корреляция и fold-down измерены; слышимость и источник требуют проверки.",
